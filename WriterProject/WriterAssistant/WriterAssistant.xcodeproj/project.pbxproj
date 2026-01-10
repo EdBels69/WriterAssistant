@@ -1,0 +1,496 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1B2C3D4E5F6G7H8 /* UltrahinkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7H9 /* UltrahinkApp.swift */; };
+		A1B2C3D4E5F6G7I0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7I1 /* AppDelegate.swift */; };
+		A1B2C3D4E5F6G7J2 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7J3 /* Colors.swift */; };
+		A1B2C3D4E5F6G7K4 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7K5 /* Typography.swift */; };
+		A1B2C3D4E5F6G7L6 /* Button.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7L7 /* Button.swift */; };
+		A1B2C3D4E5F6G7M8 /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7M9 /* Card.swift */; };
+		A1B2C3D4E5F6G7N0 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7N1 /* Settings.swift */; };
+		A1B2C3D4E5F6G7O2 /* LogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7O3 /* LogEntry.swift */; };
+		A1B2C3D4E5F6G7P4 /* UpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7P5 /* UpdateManager.swift */; };
+		A1B2C3D4E5F6G7Q6 /* ResourceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7Q7 /* ResourceManager.swift */; };
+		A1B2C3D4E5F6G7R8 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7R9 /* MainView.swift */; };
+		A1B2C3D4E5F6G7S0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7S1 /* SettingsView.swift */; };
+		A1B2C3D4E5F6G7T2 /* LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7T3 /* LogsView.swift */; };
+		A1B2C3D4E5F6G7U4 /* Ultrahink.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6G7U5 /* Ultrahink.xcdatamodeld */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A1B2C3D4E5F6G7H0 /* Ultrahink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ultrahink.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F6G7H9 /* UltrahinkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UltrahinkApp.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7I1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7J3 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7K5 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7L7 /* Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Button.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7M9 /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7N1 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7O3 /* LogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEntry.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7P5 /* UpdateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateManager.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7Q7 /* ResourceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceManager.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7R9 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7S1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7T3 /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7U6 /* Ultrahink.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Ultrahink.xcdatamodel; sourceTree = "<group>"; };
+		A1B2C3D4E5F6G7V7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1B2C3D4E5F6G7E0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1B2C3D4E5F6G7D0 = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7D1 /* Ultrahink */,
+				A1B2C3D4E5F6G7D2 /* UltrahinkTests */,
+				A1B2C3D4E5F6G7D3 /* UltrahinkUITests */,
+				A1B2C3D4E5F6G7F0 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7D1 /* Ultrahink */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7V7 /* Info.plist */,
+				A1B2C3D4E5F6G7A0 /* App */,
+				A1B2C3D4E5F6G7B0 /* Core */,
+				A1B2C3D4E5F6G7C0 /* Features */,
+				A1B2C3D4E5F6G7D4 /* UI */,
+				A1B2C3D4E5F6G7E1 /* Models */,
+				A1B2C3D4E5F6G7F1 /* Resources */,
+			);
+			path = Ultrahink;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7A0 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7H9 /* UltrahinkApp.swift */,
+				A1B2C3D4E5F6G7I1 /* AppDelegate.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7B0 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7P5 /* UpdateManager.swift */,
+				A1B2C3D4E5F6G7Q7 /* ResourceManager.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7C0 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7R9 /* Main */,
+				A1B2C3D4E5F6G7S0 /* Settings */,
+				A1B2C3D4E5F6G7T0 /* Logs */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7R9 /* Main */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7R9 /* MainView.swift */,
+			);
+			path = Main;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7S0 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7S1 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7T0 /* Logs */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7T3 /* LogsView.swift */,
+			);
+			path = Logs;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7D4 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7D5 /* Components */,
+				A1B2C3D4E5F6G7D6 /* Theme */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7D5 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7L7 /* Button.swift */,
+				A1B2C3D4E5F6G7M9 /* Card.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7D6 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7J3 /* Colors.swift */,
+				A1B2C3D4E5F6G7K5 /* Typography.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7E1 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7N1 /* Settings.swift */,
+				A1B2C3D4E5F6G7O3 /* LogEntry.swift */,
+				A1B2C3D4E5F6G7U5 /* Ultrahink.xcdatamodeld */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7F1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7D2 /* UltrahinkTests */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = UltrahinkTests;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7D3 /* UltrahinkUITests */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = UltrahinkUITests;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6G7F0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6G7H0 /* Ultrahink.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1B2C3D4E5F6G7G0 /* Ultrahink */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F6G7J0 /* Build configuration list for PBXNativeTarget "Ultrahink" */;
+			buildPhases = (
+				A1B2C3D4E5F6G7C0 /* Sources */,
+				A1B2C3D4E5F6G7E0 /* Frameworks */,
+				A1B2C3D4E5F6G7F0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Ultrahink;
+			productName = Ultrahink;
+			productReference = A1B2C3D4E5F6G7H0 /* Ultrahink.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1B2C3D4E5F6G7B0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					A1B2C3D4E5F6G7G0 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A1B2C3D4E5F6G7I0 /* Build configuration list for PBXProject "Ultrahink" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A1B2C3D4E5F6G7D0;
+			productRefGroup = A1B2C3D4E5F6G7F0 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1B2C3D4E5F6G7G0 /* Ultrahink */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1B2C3D4E5F6G7F0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1B2C3D4E5F6G7C0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F6G7H8 /* UltrahinkApp.swift in Sources */,
+				A1B2C3D4E5F6G7I0 /* AppDelegate.swift in Sources */,
+				A1B2C3D4E5F6G7J2 /* Colors.swift in Sources */,
+				A1B2C3D4E5F6G7K4 /* Typography.swift in Sources */,
+				A1B2C3D4E5F6G7L6 /* Button.swift in Sources */,
+				A1B2C3D4E5F6G7M8 /* Card.swift in Sources */,
+				A1B2C3D4E5F6G7N0 /* Settings.swift in Sources */,
+				A1B2C3D4E5F6G7O2 /* LogEntry.swift in Sources */,
+				A1B2C3D4E5F6G7P4 /* UpdateManager.swift in Sources */,
+				A1B2C3D4E5F6G7Q6 /* ResourceManager.swift in Sources */,
+				A1B2C3D4E5F6G7R8 /* MainView.swift in Sources */,
+				A1B2C3D4E5F6G7S0 /* SettingsView.swift in Sources */,
+				A1B2C3D4E5F6G7T2 /* LogsView.swift in Sources */,
+				A1B2C3D4E5F6G7U4 /* Ultrahink.xcdatamodeld in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A1B2C3D4E5F6G7K0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6G7L0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F6G7M0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Ultrahink/Ultrahink.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Ultrahink/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ultrahink.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6G7N0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Ultrahink/Ultrahink.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Ultrahink/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ultrahink.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1B2C3D4E5F6G7I0 /* Build configuration list for PBXProject "Ultrahink" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6G7K0 /* Debug */,
+				A1B2C3D4E5F6G7L0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F6G7J0 /* Build configuration list for PBXNativeTarget "Ultrahink" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6G7M0 /* Debug */,
+				A1B2C3D4E5F6G7N0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		A1B2C3D4E5F6G7U5 /* Ultrahink.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				A1B2C3D4E5F6G7U6 /* Ultrahink.xcdatamodel */,
+			);
+			currentVersion = A1B2C3D4E5F6G7U6 /* Ultrahink.xcdatamodel */;
+			path = Ultrahink.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+
+	};
+	rootObject = A1B2C3D4E5F6G7B0 /* Project object */;
+}
