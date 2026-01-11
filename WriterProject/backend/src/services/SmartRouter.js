@@ -8,7 +8,7 @@ class SmartRouter {
     this.primaryGLM = new GLMService(primaryApiKey)
     this.secondaryGLM = new GLMService(secondaryApiKey)
     this.openRouterApiKey = process.env.OPENROUTER_API_KEY
-    this.deepseekModel = 'deepseek/deepseek-r1:free'
+    this.deepseekModel = 'deepseek/deepseek-r1-0528:free'
     this.qwenModel = 'qwen/qwen-2.5-coder-7b-instruct:free'
     this.chunkingService = new TextChunkingService()
     this.balanceCache = {

@@ -62,11 +62,23 @@ class AIController {
 
   async generateIdeas(req, res) {
     try {
-      const { genre, theme, count = 5 } = req.body
+      const { genre, theme, count = 5, text, provider, openRouterKey } = req.body
       if (!genre || !theme) {
         return res.status(400).json({ error: 'genre and theme are required' })
       }
-      const result = await this.glmService.generateIdeas(genre, theme, count)
+      if (openRouterKey) {
+        this.smartRouter.openRouterApiKey = openRouterKey
+        console.log('[AIController] OpenRouter API key updated from request')
+      }
+      const result = provider 
+        ? await this.smartRouter.routeRequest('idea generation', `Generate ${count} ideas for ${genre} with theme: ${theme}${text ? `. Context: ${text}` : ''}`, {
+            systemPrompt: 'You are a creative writing assistant specialized in generating unique and engaging story ideas.',
+            temperature: 0.8,
+            maxTokens: 2048,
+            priority: 'balanced',
+            forceProvider: provider
+          })
+        : await this.glmService.generateIdeas(genre, theme, count, text)
       res.json(result)
     } catch (error) {
       res.status(500).json({ error: error.message })
@@ -344,11 +356,23 @@ class AIController {
 
   async structureIdeas(req, res) {
     try {
-      const { sources, researchGoal, context = '' } = req.body
+      const { sources, researchGoal, context = '', provider, openRouterKey } = req.body
       if (!sources || !researchGoal) {
         return res.status(400).json({ error: 'sources and researchGoal are required' })
       }
-      const result = await this.smartRouter.structureIdeas(sources, researchGoal, context)
+      if (openRouterKey) {
+        this.smartRouter.openRouterApiKey = openRouterKey
+        console.log('[AIController] OpenRouter API key updated from request')
+      }
+      const result = provider 
+        ? await this.smartRouter.routeRequest('structure ideas', `Structure the following sources with research goal: ${researchGoal}\n\nSources: ${sources}`, {
+            systemPrompt: 'You are an expert academic assistant specializing in structuring and organizing research ideas and sources.',
+            temperature: 0.7,
+            maxTokens: 4096,
+            priority: 'balanced',
+            forceProvider: provider
+          })
+        : await this.smartRouter.structureIdeas(sources, researchGoal, context)
       res.json(result)
     } catch (error) {
       res.status(500).json({ error: error.message })
@@ -370,11 +394,23 @@ class AIController {
 
   async literatureReview(req, res) {
     try {
-      const { topic, reviewType = 'narrative', context = '' } = req.body
+      const { topic, reviewType = 'narrative', context = '', provider, openRouterKey, text } = req.body
       if (!topic) {
         return res.status(400).json({ error: 'topic is required' })
       }
-      const result = await this.smartRouter.literatureReview(topic, reviewType, context)
+      if (openRouterKey) {
+        this.smartRouter.openRouterApiKey = openRouterKey
+        console.log('[AIController] OpenRouter API key updated from request')
+      }
+      const result = provider 
+        ? await this.smartRouter.routeRequest('literature review', `Generate a ${reviewType} literature review on: ${topic}${context ? `\n\nContext: ${context}` : ''}${text ? `\n\nText: ${text}` : ''}`, {
+            systemPrompt: `You are an expert academic researcher specializing in ${reviewType} literature reviews. Provide comprehensive, well-structured reviews with proper citations.`,
+            temperature: 0.7,
+            maxTokens: 4096,
+            priority: 'balanced',
+            forceProvider: provider
+          })
+        : await this.smartRouter.literatureReview(topic, reviewType, context)
       res.json(result)
     } catch (error) {
       res.status(500).json({ error: error.message })
@@ -383,11 +419,23 @@ class AIController {
 
   async statisticalAnalysis(req, res) {
     try {
-      const { researchQuestion, dataDescription, context = '' } = req.body
+      const { researchQuestion, dataDescription, context = '', provider, openRouterKey, analysisGoal, text } = req.body
       if (!researchQuestion || !dataDescription) {
         return res.status(400).json({ error: 'researchQuestion and dataDescription are required' })
       }
-      const result = await this.smartRouter.statisticalAnalysis(researchQuestion, dataDescription, context)
+      if (openRouterKey) {
+        this.smartRouter.openRouterApiKey = openRouterKey
+        console.log('[AIController] OpenRouter API key updated from request')
+      }
+      const result = provider 
+        ? await this.smartRouter.routeRequest('statistical analysis', `Statistical analysis for research: ${researchQuestion}\n\nData: ${dataDescription}${analysisGoal ? `\n\nGoal: ${analysisGoal}` : ''}${context ? `\n\nContext: ${context}` : ''}${text ? `\n\nText: ${text}` : ''}`, {
+            systemPrompt: 'You are an expert statistician providing detailed statistical analysis and recommendations.',
+            temperature: 0.7,
+            maxTokens: 4096,
+            priority: 'balanced',
+            forceProvider: provider
+          })
+        : await this.smartRouter.statisticalAnalysis(researchQuestion, dataDescription, context)
       res.json(result)
     } catch (error) {
       res.status(500).json({ error: error.message })
@@ -442,11 +490,23 @@ class AIController {
 
   async generateResearchDesign(req, res) {
     try {
-      const { researchQuestion, researchType } = req.body
+      const { researchQuestion, researchType, provider, openRouterKey, text } = req.body
       if (!researchQuestion || !researchType) {
         return res.status(400).json({ error: 'researchQuestion and researchType are required' })
       }
-      const result = await this.glmService.generateResearchDesign(researchQuestion, researchType)
+      if (openRouterKey) {
+        this.smartRouter.openRouterApiKey = openRouterKey
+        console.log('[AIController] OpenRouter API key updated from request')
+      }
+      const result = provider 
+        ? await this.smartRouter.routeRequest('research design', `Generate a ${researchType} research design for: ${researchQuestion}${text ? `\n\nText: ${text}` : ''}`, {
+            systemPrompt: 'You are an expert research methodology consultant. Design rigorous and feasible research studies.',
+            temperature: 0.7,
+            maxTokens: 4096,
+            priority: 'balanced',
+            forceProvider: provider
+          })
+        : await this.glmService.generateResearchDesign(researchQuestion, researchType)
       res.json(result)
     } catch (error) {
       res.status(500).json({ error: error.message })
@@ -455,11 +515,23 @@ class AIController {
 
   async analyzeResults(req, res) {
     try {
-      const { results, researchQuestion } = req.body
+      const { results, researchQuestion, provider, openRouterKey, context, text } = req.body
       if (!results || !researchQuestion) {
         return res.status(400).json({ error: 'results and researchQuestion are required' })
       }
-      const result = await this.glmService.analyzeResults(results, researchQuestion)
+      if (openRouterKey) {
+        this.smartRouter.openRouterApiKey = openRouterKey
+        console.log('[AIController] OpenRouter API key updated from request')
+      }
+      const result = provider 
+        ? await this.smartRouter.routeRequest('analyze results', `Analyze research results for: ${researchQuestion}\n\nResults: ${results}${context ? `\n\nContext: ${context}` : ''}${text ? `\n\nText: ${text}` : ''}`, {
+            systemPrompt: 'You are an expert research analyst providing detailed interpretation of research results.',
+            temperature: 0.7,
+            maxTokens: 4096,
+            priority: 'balanced',
+            forceProvider: provider
+          })
+        : await this.glmService.analyzeResults(results, researchQuestion)
       res.json(result)
     } catch (error) {
       res.status(500).json({ error: error.message })
@@ -468,11 +540,23 @@ class AIController {
 
   async generateDiscussion(req, res) {
     try {
-      const { results, limitations, implications, context = '' } = req.body
+      const { results, limitations, implications, context = '', provider, openRouterKey, text } = req.body
       if (!results) {
         return res.status(400).json({ error: 'results is required' })
       }
-      const result = await this.smartRouter.generateDiscussion(results, limitations || '', implications || '', context)
+      if (openRouterKey) {
+        this.smartRouter.openRouterApiKey = openRouterKey
+        console.log('[AIController] OpenRouter API key updated from request')
+      }
+      const result = provider 
+        ? await this.smartRouter.routeRequest('generate discussion', `Generate a discussion section for research with results: ${results}${limitations ? `\n\nLimitations: ${limitations}` : ''}${implications ? `\n\nImplications: ${implications}` : ''}${context ? `\n\nContext: ${context}` : ''}${text ? `\n\nText: ${text}` : ''}`, {
+            systemPrompt: 'You are an expert academic writer creating discussion sections that interpret results, acknowledge limitations, and discuss implications.',
+            temperature: 0.7,
+            maxTokens: 4096,
+            priority: 'balanced',
+            forceProvider: provider
+          })
+        : await this.smartRouter.generateDiscussion(results, limitations || '', implications || '', context)
       res.json(result)
     } catch (error) {
       res.status(500).json({ error: error.message })
@@ -481,11 +565,23 @@ class AIController {
 
   async generateConclusion(req, res) {
     try {
-      const { mainFindings, implications, futureDirections, context = '' } = req.body
+      const { mainFindings, implications, futureDirections, context = '', provider, openRouterKey, text } = req.body
       if (!mainFindings) {
         return res.status(400).json({ error: 'mainFindings is required' })
       }
-      const result = await this.smartRouter.generateConclusion(mainFindings, implications || '', futureDirections || '', context)
+      if (openRouterKey) {
+        this.smartRouter.openRouterApiKey = openRouterKey
+        console.log('[AIController] OpenRouter API key updated from request')
+      }
+      const result = provider 
+        ? await this.smartRouter.routeRequest('generate conclusion', `Generate a conclusion section for research with main findings: ${mainFindings}${implications ? `\n\nImplications: ${implications}` : ''}${futureDirections ? `\n\nFuture directions: ${futureDirections}` : ''}${context ? `\n\nContext: ${context}` : ''}${text ? `\n\nText: ${text}` : ''}`, {
+            systemPrompt: 'You are an expert academic writer creating conclusion sections that summarize key findings, discuss implications, and suggest future directions.',
+            temperature: 0.7,
+            maxTokens: 4096,
+            priority: 'balanced',
+            forceProvider: provider
+          })
+        : await this.smartRouter.generateConclusion(mainFindings, implications || '', futureDirections || '', context)
       res.json(result)
     } catch (error) {
       res.status(500).json({ error: error.message })

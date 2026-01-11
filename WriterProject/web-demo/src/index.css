@@ -19,6 +19,41 @@
     background-color: #0d9488;
     color: white;
   }
+
+  *:focus-visible {
+    outline: 3px solid #0d9488;
+    outline-offset: 2px;
+  }
+
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 3px solid #0d9488;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px rgba(13, 148, 136, 0.15);
+  }
+
+  .btn:focus-visible {
+    box-shadow: 0 0 0 2px white, 0 0 0 5px #0d9488, 0 10px 15px -3px rgba(15, 23, 42, 0.2);
+  }
+
+  .tool-card:focus-visible {
+    outline: 3px solid #0d9488;
+    outline-offset: 4px;
+    box-shadow: 0 0 0 8px rgba(13, 148, 136, 0.2);
+  }
+
+  .entry-mode-btn:focus-visible {
+    outline: 3px solid #0d9488;
+    outline-offset: 4px;
+    box-shadow: 0 0 0 8px rgba(13, 148, 136, 0.2);
+  }
 }
 
 @layer components {
@@ -173,6 +208,12 @@
     border-color: #0d9488;
     box-shadow: 0 0 0 1rem rgba(13, 148, 136, 0.2);
   }
+
+  .input-field:focus-visible {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #0d9488;
+    outline: none;
+  }
   
   .textarea-field {
     width: 100%;
@@ -188,6 +229,12 @@
   .textarea-field:focus {
     border-color: #0d9488;
     box-shadow: 0 0 0 1rem rgba(13, 148, 136, 0.2);
+  }
+
+  .textarea-field:focus-visible {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #0d9488;
+    outline: none;
   }
 }
 

@@ -82,7 +82,7 @@ const pipelineTemplates = {
 }
 
 const TemplateSelector = ({ onSelectTemplate }) => {
-  const { createPipeline } = usePipelineStore()
+  const { createPipeline, addStep } = usePipelineStore()
   const [selectedTemplate, setSelectedTemplate] = useState(null)
 
   const handleSelectTemplate = (templateKey) => {
@@ -93,7 +93,7 @@ const TemplateSelector = ({ onSelectTemplate }) => {
       const pipeline = createPipeline(template.name, templateKey)
       
       template.steps.forEach((step) => {
-        createPipeline?.pipelineId && createPipeline.addStep?.(pipeline.id, step)
+        addStep(pipeline.id, step)
       })
       
       onSelectTemplate?.(pipeline)

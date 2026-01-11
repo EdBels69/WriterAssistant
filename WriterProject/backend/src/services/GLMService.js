@@ -14,8 +14,7 @@ class GLMService {
       maxTokens = 2000,
       systemPrompt = null,
       context = [],
-      thinking = 'disabled',
-      useCodingAPI = false
+      thinking = 'disabled'
     } = options
 
     const messages = []
@@ -38,9 +37,7 @@ class GLMService {
       requestBody.thinking = { type: thinking }
     }
 
-    const url = useCodingAPI 
-      ? `${this.codingURL}/chat/completions`
-      : `${this.baseURL}/chat/completions`
+    const url = `${this.codingURL}/chat/completions`
 
     try {
       const response = await axios.post(url, requestBody, {
@@ -54,7 +51,7 @@ class GLMService {
       return {
         success: true,
         content: response.data.choices[0].message.content,
-        thinking: response.data.choices[0].message.thinking,
+        thinking: response.data.choices[0].message.reasoning_content,
         usage: response.data.usage
       }
     } catch (error) {
@@ -66,10 +63,19 @@ class GLMService {
     }
   }
 
-  async generateIdeas(genre, theme, count = 5) {
+  async generateIdeas(genre, theme, count = 5, text = '') {
     const systemPrompt = `Ты - профессиональный писатель и консультант по сюжетам. Создавай уникальные и интересные идеи для литературных произведений.`
 
-    const prompt = `Создай ${count} идей для ${genre} на тему "${theme}". 
+    let prompt = ''
+    if (text && text.trim()) {
+      prompt = `Проанализируй следующий текст и создай ${count} идей для ${genre} на основе этого текста:
+
+Текст для анализа:
+${text}
+
+Жанр: ${genre === 'Автоматическое определение из текста' ? 'Определи на основе текста' : genre}
+Тема: ${theme === 'Автоматическое определение из текста' ? 'Определи на основе текста' : theme}
+
 Для каждой идеи укажи:
 1. Заголовок/название
 2. Краткое описание (2-3 предложения)
@@ -77,6 +83,16 @@ class GLMService {
 4. Интересный поворот
 
 Формат: нумерованный список с четкой структурой.`
+    } else {
+      prompt = `Создай ${count} идей для ${genre} на тему "${theme}". 
+Для каждой идеи укажи:
+1. Заголовок/название
+2. Краткое описание (2-3 предложения)
+3. Главный конфликт
+4. Интересный поворот
+
+Формат: нумерованный список с четкой структурой.`
+    }
 
     return this.generateCompletion(prompt, {
       systemPrompt,
@@ -326,7 +342,7 @@ ${sources}
     })
   }
 
-  async literatureReview(topic, reviewType = 'narrative') {
+  async literatureReview(topic, reviewType = 'narrative', text = '') {
     const reviewTypes = {
       narrative: 'нарративного обзора литературы',
       systematic: 'систематического обзора литературы',
@@ -335,7 +351,27 @@ ${sources}
 
     const systemPrompt = `Ты - эксперт по проведению обзоров литературы. Создавай структурированные и критические обзоры научной литературы.`
 
-    const prompt = `Разработай структуру для ${reviewTypes[reviewType] || reviewType} по теме:
+    let prompt = ''
+    if (text && text.trim()) {
+      prompt = `Проанализируй следующий текст и разработай структуру для ${reviewTypes[reviewType] || reviewType}:
+
+Текст для анализа:
+${text}
+
+Тема: ${topic === 'Автоматическое определение из текста' ? 'Определи на основе текста' : topic}
+
+Включи:
+1. Формулировку исследовательского вопроса(ов)
+2. Критерии включения и исключения исследований
+3. Источники и базы данных для поиска
+4. Ключевые слова и стратегии поиска
+5. Процесс отбора исследований
+6. Критерии оценки качества
+7. Методы синтеза данных
+8. Структура обзора (разделы и подразделы)
+9. Потенциальные ограничения обзора`
+    } else {
+      prompt = `Разработай структуру для ${reviewTypes[reviewType] || reviewType} по теме:
 ${topic}
 
 Включи:
@@ -348,6 +384,7 @@ ${topic}
 7. Методы синтеза данных
 8. Структура обзора (разделы и подразделы)
 9. Потенциальные ограничения обзора`
+    }
 
     return this.generateCompletion(prompt, {
       systemPrompt,

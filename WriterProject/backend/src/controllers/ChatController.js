@@ -18,7 +18,7 @@ class ChatController {
 
   async sendMessage(req, res) {
     try {
-      const { userId, projectId, sessionId, message, mode } = req.body
+      const { userId, projectId, sessionId, message, mode, settings } = req.body
 
       if (!message) {
         return res.status(400).json({ error: 'message is required' })
@@ -43,11 +43,22 @@ class ChatController {
         systemPrompt = 'Ты - литературный критик и аналитик. Проводи глубокий анализ текстов, выявляй сильные и слабые стороны, давай экспертные оценки.'
       }
 
+      const thinkingMode = settings?.thinkingMode || 'interleaved'
+
+      const thinkingModeMap = {
+        'interleaved': 'interleaved',
+        'preserved': 'preserved',
+        'ultrathink': 'preserved'
+      }
+
+      const mappedThinkingMode = thinkingModeMap[thinkingMode] || 'interleaved'
+
       const result = await this.glmService.generateCompletion(message, {
         systemPrompt,
         context: context.slice(-10),
         temperature: mode === 'creative' ? 0.8 : 0.7,
-        maxTokens: 1500
+        maxTokens: 1500,
+        thinking: mappedThinkingMode
       })
 
       if (result.success) {
@@ -56,7 +67,8 @@ class ChatController {
           projectId,
           currentSessionId,
           'assistant',
-          result.content
+          result.content,
+          result.thinking
         )
 
         this.db.saveAIRequest(
@@ -71,12 +83,14 @@ class ChatController {
         this.wsServer.broadcast(userId, 'chat_message', {
           sessionId: currentSessionId,
           role: 'assistant',
-          content: result.content
+          content: result.content,
+          thinking: result.thinking
         })
 
         res.json({
           sessionId: currentSessionId,
           response: result.content,
+          thinking: result.thinking,
           usage: result.usage
         })
       } else {

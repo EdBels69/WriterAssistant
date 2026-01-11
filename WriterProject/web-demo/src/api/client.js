@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || '/api'
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -16,6 +16,23 @@ apiClient.interceptors.request.use(
     const userId = localStorage.getItem('userId')
     if (userId) {
       config.params = { ...config.params, userId }
+    }
+    const swSettings = localStorage.getItem('swSettings')
+    if (swSettings) {
+      try {
+        const settings = JSON.parse(swSettings)
+        const providerMapping = {
+          'glm-4.7': 'glm-primary',
+          'deepseek-r1': 'deepseek',
+          'qwen': 'qwen'
+        }
+        if (config.method === 'post' && config.data) {
+          config.data.provider = config.data.provider || providerMapping[settings.primaryModel] || 'glm-primary'
+          config.data.openRouterKey = config.data.openRouterKey || settings.openRouterKey || ''
+        }
+      } catch (e) {
+        console.error('Error parsing swSettings:', e)
+      }
     }
     return config
   },

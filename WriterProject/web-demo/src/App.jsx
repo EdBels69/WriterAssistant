@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, lazy, Suspense } from 'react'
 import { 
   LayoutDashboard, 
   Settings, 
@@ -22,7 +22,8 @@ import {
   ChevronDown,
   ChevronLeft,
   Play,
-  Pause
+  Pause,
+  Brain
 } from 'lucide-react'
 import { projectsAPI } from './api/projects'
 import { chatAPI } from './api/chat'
@@ -33,54 +34,50 @@ import { commentsAPI } from './api/comments'
 import { uploadAPI } from './api/upload'
 import { documentsAPI } from './api/documents'
 import useWebSocket from './hooks/useWebSocket'
-import AnalysisResultsSection from './components/AnalysisResultsSection'
-import EntryPoints from './components/EntryPoints'
-import PipelineVisualizer from './components/PipelineVisualizer'
-import MultiAgentFlow from './components/MultiAgentFlow'
-import TemplateSelector from './components/TemplateSelector'
+const AnalysisResultsSection = lazy(() => import('./components/AnalysisResultsSection'))
+const EntryPoints = lazy(() => import('./components/EntryPoints'))
+const PipelineVisualizer = lazy(() => import('./components/PipelineVisualizer'))
+const MultiAgentFlow = lazy(() => import('./components/MultiAgentFlow'))
+const TemplateSelector = lazy(() => import('./components/TemplateSelector'))
 import usePipelineStore from './stores/pipelineStore'
 import useContextStore from './stores/contextStore'
+import useAppStore from './stores/appStore'
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard')
-  const [activeToolScreen, setActiveToolScreen] = useState(null)
-  const [activeDropdown, setActiveDropdown] = useState(null)
-  const [isChatOpen, setIsChatOpen] = useState(false)
-  const [chatMessages, setChatMessages] = useState([
-    { role: 'assistant', content: 'Добро пожаловать в ScientificWriter AI — ваш интеллектуальный помощник для научных исследований. Я специализируюсь на:\n\n• Генерации и проверке исследовательских гипотез\n• Систематическом обзоре литературы\n• Структурировании методологии\n• Статистическом анализе и интерпретации результатов\n• Редактировании научных текстов до академических стандартов\n\nКакой аспект вашего исследования мы можем оптимизировать сегодня?' }
-  ])
-  const [currentInput, setCurrentInput] = useState('')
-  const [chatMode, setChatMode] = useState('creative')
-  const [sessionId, setSessionId] = useState(null)
-
-  const [stats, setStats] = useState(null)
-  const [projects, setProjects] = useState([])
-  const [comments, setComments] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [uploadedFiles, setUploadedFiles] = useState([])
-  const [selectedProject, setSelectedProject] = useState(null)
-  const [inputMode, setInputMode] = useState('file')
-  const [inputText, setInputText] = useState('')
-  const [documentType, setDocumentType] = useState('scientific')
-  const [selectedTool, setSelectedTool] = useState(null)
-  const [textInputResult, setTextInputResult] = useState(null)
-  const [projectAnalysisResults, setProjectAnalysisResults] = useState([])
-  const [projectActiveTab, setProjectActiveTab] = useState('overview')
-  const [chapters, setChapters] = useState([])
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false)
-  const [selectedPipelineTemplate, setSelectedPipelineTemplate] = useState(null)
-  const [showPipelineVisualization, setShowPipelineVisualization] = useState(false)
-  const [activePipelineId, setActivePipelineId] = useState(null)
-  const [showSettings, setShowSettings] = useState(false)
-  const [settings, setSettings] = useState(() => ({
-    primaryModel: 'glm-4.7',
-    thinkingMode: 'interleaved',
-    fallbackModel: 'deepseek-r1',
-    textEditingModel: 'qwen',
-    useCodingAPI: true,
-    openRouterKey: ''
-  }))
+  const {
+    activeTab, setActiveTab,
+    activeToolScreen, setActiveToolScreen,
+    activeDropdown, setActiveDropdown,
+    isChatOpen, setIsChatOpen,
+    chatMessages, setChatMessages, addChatMessage,
+    currentInput, setCurrentInput,
+    chatMode, setChatMode,
+    sessionId, setSessionId,
+    stats, setStats,
+    projects, setProjects,
+    comments, setComments,
+    loading, setLoading,
+    error, setError,
+    isAnalyzing, setIsAnalyzing,
+    uploadedFiles, setUploadedFiles,
+    selectedProject, setSelectedProject,
+    inputMode, setInputMode,
+    inputText, setInputText,
+    documentType, setDocumentType,
+    selectedTool, setSelectedTool,
+    textInputResult, setTextInputResult,
+    projectAnalysisResults, setProjectAnalysisResults,
+    projectActiveTab, setProjectActiveTab,
+    chapters, setChapters,
+    showTemplateSelector, setShowTemplateSelector,
+    selectedPipelineTemplate, setSelectedPipelineTemplate,
+    showPipelineVisualization, setShowPipelineVisualization,
+    activePipelineId, setActivePipelineId,
+    showSettings, setShowSettings,
+    settings, setSettings, updateSettings,
+    resetChat,
+    loadChatHistory
+  } = useAppStore()
 
   const userId = localStorage.getItem('userId') || 'demo-user'
   if (!localStorage.getItem('userId')) {
@@ -97,10 +94,7 @@ function App() {
 
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === 'chat_message' && data.data.sessionId === sessionId) {
-      setChatMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: data.data.content }
-      ])
+      addChatMessage({ role: 'assistant', content: data.data.content })
     }
   }, [sessionId])
 
@@ -111,15 +105,19 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (selectedProject) {
+    if (sessionId) {
+      loadChatHistory(sessionId)
+    }
+  }, [sessionId])
+
+  useEffect(() => {
+    if (selectedProject && projectActiveTab === 'overview') {
       handleLoadComments(selectedProject.id)
       setProjectAnalysisResults([])
-      setProjectActiveTab('overview')
     }
-  }, [selectedProject])
+  }, [selectedProject, projectActiveTab])
 
   const loadInitialData = async () => {
-    setLoading(true)
     try {
       const [statsData, projectsData] = await Promise.all([
         statisticsAPI.getOverview(userId),
@@ -127,11 +125,12 @@ function App() {
       ])
       setStats(statsData)
       setProjects(projectsData)
+      setError(null)
     } catch (err) {
-      setError('Ошибка загрузки данных. Убедитесь, что backend сервер запущен.')
       console.error('Error loading initial data:', err)
-    } finally {
-      setLoading(false)
+      if (!stats) {
+        setError('Ошибка загрузки данных. Убедитесь, что backend сервер запущен.')
+      }
     }
   }
 
@@ -139,10 +138,7 @@ function App() {
     if (!currentInput.trim()) return
 
     const userMessage = currentInput
-    setChatMessages(prev => [
-      ...prev,
-      { role: 'user', content: userMessage }
-    ])
+    addChatMessage({ role: 'user', content: userMessage })
     setCurrentInput('')
 
     try {
@@ -151,23 +147,22 @@ function App() {
         projectId: null,
         sessionId,
         message: userMessage,
-        mode: chatMode
+        mode: chatMode,
+        settings: {
+          thinkingMode: settings.thinkingMode,
+          primaryModel: settings.primaryModel,
+          fallbackModel: settings.fallbackModel,
+          useCodingAPI: settings.useCodingAPI,
+          openRouterKey: settings.openRouterKey
+        }
       })
 
       setSessionId(response.sessionId)
 
-      if (isConnected) {
-        setChatMessages(prev => [
-          ...prev,
-          { role: 'assistant', content: response.response }
-        ])
-      }
+      addChatMessage({ role: 'assistant', content: response.response, thinking: response.thinking })
     } catch (err) {
       console.error('Error sending message:', err)
-      setChatMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: 'Извините, произошла ошибка. Попробуйте позже.' }
-      ])
+      addChatMessage({ role: 'assistant', content: 'Извините, произошла ошибка. Попробуйте позже.' })
     }
   }
 
@@ -183,7 +178,7 @@ function App() {
     if (!name) return
 
     try {
-      await projectsAPI.create({
+      const createdProject = await projectsAPI.create({
         userId,
         name,
         genre: 'general',
@@ -192,9 +187,21 @@ function App() {
         pipelineType: pipeline.type
       })
       setSelectedPipelineTemplate(pipeline)
-      loadInitialData()
+      setActivePipelineId(pipeline.id)
+      setActiveTab('projects')
+      if (createdProject?.id) {
+        setSelectedProject(createdProject)
+        loadChapters(createdProject.id)
+      }
+      try {
+        await loadInitialData()
+      } catch (loadErr) {
+        console.error('Error loading data after project creation:', loadErr)
+      }
+      setProjectActiveTab('tools')
     } catch (err) {
       console.error('Error creating project:', err)
+      alert('Ошибка создания проекта: ' + (err.message || 'Неизвестная ошибка'))
     }
   }
 
@@ -252,7 +259,7 @@ function App() {
   }
 
   const handleSettingsChange = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }))
+    updateSettings(key, value)
     localStorage.setItem('swSettings', JSON.stringify({ ...settings, [key]: value }))
   }
 
@@ -262,16 +269,44 @@ function App() {
   }
 
   const handleGenerateIdeas = async () => {
-    const genre = prompt('Введите жанр (например, фантастика, детектив, роман):')
-    if (!genre) return
+    let genre = ''
+    let theme = ''
 
-    const theme = prompt('Введите тему:')
-    if (!theme) return
+    if (inputMode === 'text') {
+      if (!inputText) {
+        alert('Пожалуйста, введите текст для обработки')
+        return
+      }
+      genre = prompt('Введите жанр (например, фантастика, детектив, роман, или оставьте пустым для автоматического определения из текста):') || 'Автоматическое определение из текста'
+      theme = prompt('Введите тему (или оставьте пустым для автоматического определения из текста):') || 'Автоматическое определение из текста'
+    } else {
+      genre = prompt('Введите жанр (например, фантастика, детектив, роман):')
+      if (!genre) return
+
+      theme = prompt('Введите тему:')
+      if (!theme) return
+    }
 
     try {
-      const result = await aiAPI.generateIdeas({ genre, theme, count: 5 })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.generateIdeas({ genre, theme, count: 5, text: inputMode === 'text' ? inputText : undefined, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
-        alert(result.content)
+        const analysisResult = {
+          tool: 'generateIdeas',
+          content: result.content,
+          timestamp: new Date().toISOString(),
+          metadata: { genre, theme }
+        }
+
+        if (inputMode === 'text') {
+          setTextInputResult(analysisResult)
+        } else {
+          setProjectAnalysisResults(prev => [...prev, analysisResult])
+        }
       } else {
         alert('Ошибка: ' + result.error)
       }
@@ -454,7 +489,12 @@ function App() {
     const category = prompt('Укажите категорию (ideas, characters, plots, scenes):') || 'ideas'
 
     try {
-      const result = await aiAPI.brainstorm({ topic, category })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.brainstorm({ topic, category, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         alert(result.content)
       } else {
@@ -475,9 +515,8 @@ function App() {
         alert('Пожалуйста, введите текст для обработки')
         return
       }
-      researchArea = prompt('Введите область исследования (используется текст из поля ввода):') || 'На основе загруженного текста'
-      researchQuestion = prompt('Сформулируйте исследовательский вопрос:')
-      if (!researchQuestion) return
+      researchArea = prompt('Введите область исследования (или оставьте пустым для автоматического определения из текста):') || 'Автоматическое определение из текста'
+      researchQuestion = prompt('Сформулируйте исследовательский вопрос (или оставьте пустым для автоматического определения):') || 'Автоматическое определение из текста'
     } else {
       researchArea = prompt('Введите область исследования:')
       if (!researchArea) return
@@ -486,10 +525,15 @@ function App() {
     }
 
     try {
+      const apiKeys = {
+        openRouter: settings.openRouterKey,
+        zai: settings.zaiApiKey
+      }
       const result = await aiAPI.multiAgent.hypothesis({
         researchArea,
         researchQuestion,
-        context: inputMode === 'text' ? inputText : undefined
+        context: inputMode === 'text' ? inputText : undefined,
+        apiKeys
       })
 
       if (result.success) {
@@ -542,7 +586,12 @@ function App() {
     }
 
     try {
-      const result = await aiAPI.structureIdeas({ sources, researchGoal })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.structureIdeas({ sources, researchGoal, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         const analysisResult = {
           tool: 'structureIdeas',
@@ -617,14 +666,19 @@ function App() {
         alert('Пожалуйста, введите текст для обработки')
         return
       }
-      topic = prompt('Введите тему обзора литературы (используется текст из поля ввода):') || 'На основе загруженного текста'
+      topic = prompt('Введите тему обзора литературы (или оставьте пустым для автоматического определения из текста):') || 'Автоматическое определение из текста'
     } else {
       topic = prompt('Введите тему обзора литературы:')
       if (!topic) return
     }
 
     try {
-      const result = await aiAPI.literatureReview({ topic, reviewType, text: inputMode === 'text' ? inputText : undefined })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.literatureReview({ topic, reviewType, text: inputMode === 'text' ? inputText : undefined, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         const analysisResult = {
           tool: reviewType === 'narrative' ? 'narrativeReview' : reviewType === 'systematic' ? 'systematicReview' : 'metaAnalysis',
@@ -667,7 +721,12 @@ function App() {
     }
 
     try {
-      const result = await aiAPI.statisticalAnalysis({ dataDescription, analysisGoal, text: inputMode === 'text' ? inputText : undefined })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.statisticalAnalysis({ dataDescription, analysisGoal, text: inputMode === 'text' ? inputText : undefined, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         const analysisResult = {
           tool: 'analyzeResults',
@@ -705,7 +764,12 @@ function App() {
     }
 
     try {
-      const result = await aiAPI.literatureReview({ topic, reviewType: 'narrative', text: inputMode === 'text' ? inputText : undefined })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.literatureReview({ topic, reviewType: 'narrative', text: inputMode === 'text' ? inputText : undefined, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         const analysisResult = {
           tool: 'narrativeReview',
@@ -743,7 +807,12 @@ function App() {
     }
 
     try {
-      const result = await aiAPI.literatureReview({ topic, reviewType: 'systematic', text: inputMode === 'text' ? inputText : undefined })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.literatureReview({ topic, reviewType: 'systematic', text: inputMode === 'text' ? inputText : undefined, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         const analysisResult = {
           tool: 'systematicReview',
@@ -781,7 +850,12 @@ function App() {
     }
 
     try {
-      const result = await aiAPI.literatureReview({ topic, reviewType: 'meta-analysis', text: inputMode === 'text' ? inputText : undefined })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.literatureReview({ topic, reviewType: 'meta-analysis', text: inputMode === 'text' ? inputText : undefined, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         const analysisResult = {
           tool: 'metaAnalysis',
@@ -824,7 +898,12 @@ function App() {
     }
 
     try {
-      const result = await aiAPI.generateResearchDesign({ researchQuestion, researchType, text: inputMode === 'text' ? inputText : undefined })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.generateResearchDesign({ researchQuestion, researchType, text: inputMode === 'text' ? inputText : undefined, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         alert(result.content)
       } else {
@@ -854,7 +933,12 @@ function App() {
     }
 
     try {
-      const result = await aiAPI.analyzeResults({ results, context, text: inputMode === 'text' ? inputText : undefined })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.analyzeResults({ results, context, text: inputMode === 'text' ? inputText : undefined, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         const analysisResult = {
           tool: 'analyzeResults',
@@ -895,7 +979,12 @@ function App() {
     }
 
     try {
-      const result = await aiAPI.generateDiscussion({ results, context, text: inputMode === 'text' ? inputText : undefined })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.generateDiscussion({ results, context, text: inputMode === 'text' ? inputText : undefined, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         alert(result.content)
       } else {
@@ -925,7 +1014,12 @@ function App() {
     }
 
     try {
-      const result = await aiAPI.generateConclusion({ results, discussion, text: inputMode === 'text' ? inputText : undefined })
+      const providerMapping = {
+        'glm-4.7': 'glm-primary',
+        'deepseek-r1': 'deepseek',
+        'qwen': 'qwen'
+      }
+      const result = await aiAPI.generateConclusion({ results, discussion, text: inputMode === 'text' ? inputText : undefined, provider: providerMapping[settings.primaryModel] || 'glm-primary', openRouterKey: settings.openRouterKey })
       if (result.success) {
         alert(result.content)
       } else {
@@ -1067,6 +1161,57 @@ function App() {
     } catch (err) {
       console.error('Error synthesizing uploads:', err)
       alert('Ошибка синтеза файлов')
+    }
+  }
+
+  const handleAnalyze = async () => {
+    if (!selectedTool) {
+      alert('Пожалуйста, выберите инструмент для анализа')
+      return
+    }
+
+    setIsAnalyzing(true)
+
+    try {
+      switch (selectedTool) {
+        case 'generateIdeas':
+          await handleGenerateIdeas()
+          break
+        case 'structureIdeas':
+          await handleStructureIdeas()
+          break
+        case 'extractReferences':
+          await handleExtractReferences()
+          break
+        case 'generateHypothesis':
+          await handleGenerateHypothesis()
+          break
+        case 'structureMethodology':
+          await handleStructureMethodology()
+          break
+        case 'narrativeReview':
+          await handleGenerateNarrativeReview()
+          break
+        case 'systematicReview':
+          await handleGenerateSystematicReview()
+          break
+        case 'metaAnalysis':
+          await handleGenerateMetaAnalysis()
+          break
+        case 'analyzeResults':
+          await handleAnalyzeResults()
+          break
+        case 'improveStyle':
+          await handleImproveAcademicStyle()
+          break
+        default:
+          alert('Неизвестный инструмент')
+      }
+    } catch (error) {
+      console.error('Analysis error:', error)
+      alert('Произошла ошибка при анализе')
+    } finally {
+      setIsAnalyzing(false)
     }
   }
 
@@ -1415,7 +1560,23 @@ function App() {
               {activeToolScreen === 'data-analysis' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <button 
-                    onClick={() => setSelectedTool('structureIdeas')}
+                    onClick={() => { setSelectedTool('generateIdeas'); handleAnalyze(); }}
+                    className={`tool-card p-6 text-left transition-all ${
+                      selectedTool === 'generateIdeas' ? 'ring-2 ring-academic-teal-500' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-3 rounded-lg bg-academic-teal-100">
+                        <Sparkles className="text-academic-teal-600" size={24} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-academic-navy-900 text-lg">Исследование с нуля</h3>
+                        <p className="text-sm text-academic-navy-600">Генерация идей для исследования</p>
+                      </div>
+                    </div>
+                  </button>
+                  <button 
+                    onClick={() => { setSelectedTool('structureIdeas'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'structureIdeas' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
@@ -1431,7 +1592,7 @@ function App() {
                     </div>
                   </button>
                   <button 
-                    onClick={() => setSelectedTool('extractReferences')}
+                    onClick={() => { setSelectedTool('extractReferences'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'extractReferences' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
@@ -1447,7 +1608,7 @@ function App() {
                     </div>
                   </button>
                   <button 
-                    onClick={() => setSelectedTool('generateHypothesis')}
+                    onClick={() => { setSelectedTool('generateHypothesis'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'generateHypothesis' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
@@ -1484,7 +1645,7 @@ function App() {
               {activeToolScreen === 'literature-review' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <button 
-                    onClick={() => setSelectedTool('narrativeReview')}
+                    onClick={() => { setSelectedTool('narrativeReview'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'narrativeReview' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
@@ -1500,7 +1661,7 @@ function App() {
                     </div>
                   </button>
                   <button 
-                    onClick={() => setSelectedTool('systematicReview')}
+                    onClick={() => { setSelectedTool('systematicReview'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'systematicReview' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
@@ -1516,7 +1677,7 @@ function App() {
                     </div>
                   </button>
                   <button 
-                    onClick={() => setSelectedTool('metaAnalysis')}
+                    onClick={() => { setSelectedTool('metaAnalysis'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'metaAnalysis' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
@@ -1578,12 +1739,14 @@ function App() {
 
               {selectedTool && (
                 <div className="mt-8 pt-8 border-t border-gray-200">
-                  <EntryPoints 
-                    inputMode={inputMode}
-                    setInputMode={setInputMode}
-                    inputText={inputText}
-                    setInputText={setInputText}
-                  />
+                  <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка...</div>}>
+                    <EntryPoints 
+                      inputMode={inputMode}
+                      setInputMode={setInputMode}
+                      inputText={inputText}
+                      setInputText={setInputText}
+                    />
+                  </Suspense>
 
                   {inputMode !== 'chat' && (
                     <div className="mt-4">
@@ -1680,10 +1843,12 @@ function App() {
 
               {textInputResult && (
                 <div className="mt-8 pt-8 border-t border-gray-200">
-                  <AnalysisResultsSection 
-                    analysisResults={[textInputResult]}
-                    onClose={() => setTextInputResult(null)}
-                  />
+                  <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка результатов...</div>}>
+                    <AnalysisResultsSection 
+                      analysisResults={[textInputResult]}
+                      onClose={() => setTextInputResult(null)}
+                    />
+                  </Suspense>
                 </div>
               )}
             </div>
@@ -1854,6 +2019,16 @@ function App() {
                       }`}
                     >
                       Пайплайн
+                    </button>
+                    <button
+                      onClick={() => setProjectActiveTab('tools')}
+                      className={`px-6 py-3 font-medium transition-colors ${
+                        projectActiveTab === 'tools'
+                          ? 'text-academic-teal-600 border-b-2 border-academic-teal-600'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      Инструменты
                     </button>
                   </div>
                 </div>
@@ -2036,17 +2211,340 @@ function App() {
 
                 {projectActiveTab === 'pipeline' && (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <PipelineVisualizer 
-                      pipeline={selectedPipelineTemplate}
-                      pipelineId={activePipelineId}
-                      onStart={() => setShowPipelineVisualization(true)}
-                      onPause={() => setShowPipelineVisualization(false)}
-                      onReset={() => setActivePipelineId(null)}
-                    />
-                    <MultiAgentFlow 
-                      pipeline={selectedPipelineTemplate}
-                      pipelineId={activePipelineId}
-                    />
+                    <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка визуализации...</div>}>
+                      <PipelineVisualizer 
+                        pipeline={selectedPipelineTemplate}
+                        pipelineId={activePipelineId}
+                        onStart={() => setShowPipelineVisualization(true)}
+                        onPause={() => setShowPipelineVisualization(false)}
+                        onReset={() => setActivePipelineId(null)}
+                      />
+                    </Suspense>
+                    <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка агентов...</div>}>
+                      <MultiAgentFlow 
+                        pipeline={selectedPipelineTemplate}
+                        pipelineId={activePipelineId}
+                      />
+                    </Suspense>
+                  </div>
+                )}
+
+                {projectActiveTab === 'tools' && (
+                  <div className="card-elevated p-8">
+                    <h3 className="text-lg font-bold text-academic-navy-900 mb-6">Инструменты анализа</h3>
+                    
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="text-sm font-semibold text-academic-navy-700 mb-4 flex items-center gap-2">
+                          <FileText size={18} className="text-academic-teal-600" />
+                          Анализ данных
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <button 
+                            onClick={() => { setSelectedTool('generateIdeas'); handleAnalyze(); }}
+                            className={`tool-card p-4 text-left transition-all ${
+                              selectedTool === 'generateIdeas' ? 'ring-2 ring-academic-teal-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-academic-teal-100">
+                                <Sparkles className="text-academic-teal-600" size={20} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-academic-navy-900">Исследование с нуля</h5>
+                                <p className="text-xs text-academic-navy-600">Генерация идей</p>
+                              </div>
+                            </div>
+                          </button>
+                          <button 
+                            onClick={() => { setSelectedTool('structureIdeas'); handleAnalyze(); }}
+                            className={`tool-card p-4 text-left transition-all ${
+                              selectedTool === 'structureIdeas' ? 'ring-2 ring-academic-teal-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-academic-teal-100">
+                                <Sparkles className="text-academic-teal-600" size={20} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-academic-navy-900">Структурирование идей</h5>
+                                <p className="text-xs text-academic-navy-600">Организовать идеи</p>
+                              </div>
+                            </div>
+                          </button>
+                          <button 
+                            onClick={() => { setSelectedTool('extractReferences'); handleAnalyze(); }}
+                            className={`tool-card p-4 text-left transition-all ${
+                              selectedTool === 'extractReferences' ? 'ring-2 ring-academic-teal-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-academic-rose-100">
+                                <BookOpen className="text-academic-rose-600" size={20} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-academic-navy-900">Извлечь ссылки</h5>
+                                <p className="text-xs text-academic-navy-600">Библиография</p>
+                              </div>
+                            </div>
+                          </button>
+                          <button 
+                            onClick={() => { setSelectedTool('generateHypothesis'); handleAnalyze(); }}
+                            className={`tool-card p-4 text-left transition-all ${
+                              selectedTool === 'generateHypothesis' ? 'ring-2 ring-academic-teal-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-academic-navy-100">
+                                <Activity className="text-academic-navy-600" size={20} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-academic-navy-900">Генерация гипотез</h5>
+                                <p className="text-xs text-academic-navy-600">Гипотезы исследования</p>
+                              </div>
+                            </div>
+                          </button>
+                          <button 
+                            onClick={() => setSelectedTool('structureMethodology')}
+                            className={`tool-card p-4 text-left transition-all ${
+                              selectedTool === 'structureMethodology' ? 'ring-2 ring-academic-teal-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-academic-emerald-100">
+                                <Edit className="text-academic-emerald-600" size={20} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-academic-navy-900">Методология</h5>
+                                <p className="text-xs text-academic-navy-600">Материалы и методы</p>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-semibold text-academic-navy-700 mb-4 flex items-center gap-2">
+                          <BookOpen size={18} className="text-academic-cyan-600" />
+                          Обзор литературы
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <button 
+                            onClick={() => { setSelectedTool('narrativeReview'); handleAnalyze(); }}
+                            className={`tool-card p-4 text-left transition-all ${
+                              selectedTool === 'narrativeReview' ? 'ring-2 ring-academic-teal-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-academic-cyan-100">
+                                <BookOpen className="text-academic-cyan-600" size={20} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-academic-navy-900">Нарративный обзор</h5>
+                                <p className="text-xs text-academic-navy-600">Обзор литературы</p>
+                              </div>
+                            </div>
+                          </button>
+                          <button 
+                            onClick={() => { setSelectedTool('systematicReview'); handleAnalyze(); }}
+                            className={`tool-card p-4 text-left transition-all ${
+                              selectedTool === 'systematicReview' ? 'ring-2 ring-academic-teal-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-academic-indigo-100">
+                                <BarChart3 className="text-academic-indigo-600" size={20} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-academic-navy-900">Систематический обзор</h5>
+                                <p className="text-xs text-academic-navy-600">Структурированный анализ</p>
+                              </div>
+                            </div>
+                          </button>
+                          <button 
+                            onClick={() => { setSelectedTool('metaAnalysis'); handleAnalyze(); }}
+                            className={`tool-card p-4 text-left transition-all ${
+                              selectedTool === 'metaAnalysis' ? 'ring-2 ring-academic-teal-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-academic-amber-100">
+                                <Target className="text-academic-amber-600" size={20} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-academic-navy-900">Мета-анализ</h5>
+                                <p className="text-xs text-academic-navy-600">Статистический синтез</p>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-semibold text-academic-navy-700 mb-4 flex items-center gap-2">
+                          <BarChart3 size={18} className="text-academic-amber-600" />
+                          Статистический анализ
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <button 
+                            onClick={() => setSelectedTool('analyzeResults')}
+                            className={`tool-card p-4 text-left transition-all ${
+                              selectedTool === 'analyzeResults' ? 'ring-2 ring-academic-teal-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-academic-amber-100">
+                                <BarChart3 className="text-academic-amber-600" size={20} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-academic-navy-900">Анализ результатов</h5>
+                                <p className="text-xs text-academic-navy-600">Интерпретация статистики</p>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-semibold text-academic-navy-700 mb-4 flex items-center gap-2">
+                          <Edit3 size={18} className="text-academic-slate-600" />
+                          Стиль и форматирование
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <button 
+                            onClick={() => setSelectedTool('improveStyle')}
+                            className={`tool-card p-4 text-left transition-all ${
+                              selectedTool === 'improveStyle' ? 'ring-2 ring-academic-teal-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-academic-slate-100">
+                                <Edit className="text-academic-slate-600" size={20} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-academic-navy-900">Академический стиль</h5>
+                                <p className="text-xs text-academic-navy-600">Улучшить научный стиль</p>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {selectedTool && (
+                      <div className="mt-8 pt-8 border-t border-gray-200">
+                        <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка...</div>}>
+                          <EntryPoints 
+                            inputMode={inputMode}
+                            setInputMode={setInputMode}
+                            inputText={inputText}
+                            setInputText={setInputText}
+                          />
+                        </Suspense>
+
+                        {inputMode !== 'chat' && (
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium text-academic-navy-700 mb-2">Тип документа</label>
+                            <select 
+                              value={documentType}
+                              onChange={(e) => setDocumentType(e.target.value)}
+                              className="w-full p-3 rounded-lg border-2 border-gray-200 focus:border-academic-teal-500 focus:outline-none transition-colors"
+                            >
+                              <option value="scientific">Научная статья</option>
+                              <option value="manual">Учебное пособие</option>
+                              <option value="umc">Документ учебно-методического комплекса</option>
+                              <option value="methodical">Методические указания</option>
+                            </select>
+                          </div>
+                        )}
+
+                        {inputMode === 'file' && (
+                          <div className="mt-4 p-4 bg-white rounded-lg border-2 border-dashed border-gray-300 hover:border-academic-teal-400 transition-colors">
+                            <label className="cursor-pointer block">
+                              <input type="file" accept=".txt,.md,.json,.csv,.pdf,.doc,.docx" onChange={handleFileUpload} className="hidden" />
+                              <div className="text-center">
+                                <Upload size={32} className="mx-auto mb-2 text-gray-400" />
+                                <p className="text-sm text-gray-600">Нажмите для загрузки или перетащите файл</p>
+                                <p className="text-xs text-gray-400 mt-1">.txt, .md, .json, .csv, .pdf, .doc, .docx</p>
+                              </div>
+                            </label>
+                          </div>
+                        )}
+
+                        {uploadedFiles.length > 0 && (
+                          <div className="mt-4">
+                            <h4 className="text-sm font-medium text-academic-navy-700 mb-2">Загруженные файлы</h4>
+                            <div className="space-y-2">
+                              {uploadedFiles.map((doc, index) => (
+                                <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${
+                                      doc.status === 'ready' 
+                                        ? 'bg-academic-emerald-100' 
+                                        : doc.status === 'processing'
+                                        ? 'bg-academic-amber-100'
+                                        : 'bg-red-100'
+                                    }`}>
+                                      <Check 
+                                        className={`${
+                                          doc.status === 'ready' 
+                                            ? 'text-academic-emerald-600' 
+                                            : doc.status === 'processing'
+                                            ? 'text-academic-amber-600'
+                                            : 'text-red-600'
+                                        }`} 
+                                        size={16} 
+                                      />
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold text-academic-navy-900 text-sm">{doc.originalname}</h4>
+                                      <p className="text-xs text-gray-500">
+                                        {formatFileSize(doc.size)} • {doc.chunkCount} фрагментов • {doc.estimatedTokens} токенов
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <button 
+                                    onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== index))}
+                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <button 
+                          onClick={handleAnalyze}
+                          disabled={isAnalyzing}
+                          className="mt-6 btn btn-primary w-full flex items-center justify-center gap-2"
+                        >
+                          {isAnalyzing ? (
+                            <>
+                              <Activity size={18} className="animate-spin" />
+                              Анализирую...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles size={18} />
+                              Запустить анализ
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {textInputResult && (
+                      <div className="mt-8 pt-8 border-t border-gray-200">
+                        <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка результатов...</div>}>
+                          <AnalysisResultsSection 
+                            analysisResults={[textInputResult]}
+                            onClose={() => setTextInputResult(null)}
+                          />
+                        </Suspense>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -2100,14 +2598,25 @@ function App() {
                   key={index}
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div
-                    className={`max-w-[80%] p-3 rounded-2xl ${
-                      message.role === 'user'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-gray-100 text-gray-900'
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  <div className="flex flex-col max-w-[80%] space-y-2">
+                    {message.thinking && (
+                      <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                        <div className="text-xs text-blue-600 font-semibold mb-1 flex items-center gap-1">
+                          <Brain size={12} />
+                          Рассуждение
+                        </div>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{message.thinking}</p>
+                      </div>
+                    )}
+                    <div
+                      className={`p-3 rounded-2xl ${
+                        message.role === 'user'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2161,7 +2670,9 @@ function App() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
-              <TemplateSelector onSelectTemplate={handleTemplateSelect} />
+              <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка шаблонов...</div>}>
+                <TemplateSelector onSelectTemplate={handleTemplateSelect} />
+              </Suspense>
             </div>
           </div>
         </div>
@@ -2194,7 +2705,7 @@ function App() {
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="glm-4.7">GLM-4.7 (Z.ai)</option>
-                  <option value="deepseek-r1">DeepSeek R1 (OpenRouter)</option>
+                  <option value="deepseek-r1">DeepSeek R1 0528 (OpenRouter - бесплатно)</option>
                   <option value="qwen">Qwen 2.5 Coder (OpenRouter)</option>
                 </select>
               </div>
@@ -2236,7 +2747,7 @@ function App() {
                   onChange={(e) => handleSettingsChange('fallbackModel', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
-                  <option value="deepseek-r1">DeepSeek R1 (OpenRouter)</option>
+                  <option value="deepseek-r1">DeepSeek R1 0528 (OpenRouter - бесплатно)</option>
                   <option value="qwen">Qwen 2.5 Coder (OpenRouter)</option>
                 </select>
               </div>

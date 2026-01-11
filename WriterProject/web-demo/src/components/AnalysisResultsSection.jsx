@@ -18,6 +18,7 @@ function AnalysisResultsSection({
   }
 
   const toolNames = {
+    generateIdeas: 'Генерация идей',
     structureIdeas: 'Структурирование идей',
     extractReferences: 'Извлечение библиографии',
     generateHypothesis: 'Генерация гипотез',
@@ -30,6 +31,7 @@ function AnalysisResultsSection({
   }
 
   const toolIcons = {
+    generateIdeas: Sparkles,
     structureIdeas: Sparkles,
     extractReferences: FileText,
     generateHypothesis: CheckCircle,

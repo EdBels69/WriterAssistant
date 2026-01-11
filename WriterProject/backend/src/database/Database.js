@@ -24,6 +24,7 @@ class Database {
       if (fs.existsSync(this.dbPath)) {
         const buffer = fs.readFileSync(this.dbPath)
         this.db = new this.SQL.Database(buffer)
+        this.migrate()
       } else {
         this.db = new this.SQL.Database()
         this.initTables()
@@ -35,6 +36,21 @@ class Database {
     } catch (error) {
       console.error('Error initializing database:', error)
       throw error
+    }
+  }
+
+  migrate() {
+    try {
+      const tableInfo = this.all('PRAGMA table_info(chat_history)')
+      const hasThinkingColumn = tableInfo.some(col => col.name === 'thinking')
+      
+      if (!hasThinkingColumn) {
+        this.db.run('ALTER TABLE chat_history ADD COLUMN thinking TEXT')
+        this.save()
+        console.log('Migrated: added thinking column to chat_history')
+      }
+    } catch (error) {
+      console.error('Migration error:', error)
     }
   }
 
@@ -144,6 +160,7 @@ class Database {
         session_id TEXT NOT NULL,
         role TEXT NOT NULL,
         content TEXT NOT NULL,
+        thinking TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (project_id) REFERENCES projects(id)
@@ -248,12 +265,13 @@ class Database {
   }
 
   createProject(userId, name, genre, description, targetWords) {
-    this.run(
-      `INSERT INTO projects (user_id, name, genre, description, target_words) VALUES (?, ?, ?, ?, ?)`,
-      [userId, name, genre, description, targetWords]
-    )
+    const stmt = this.db.prepare(`INSERT INTO projects (user_id, name, genre, description, target_words) VALUES (?, ?, ?, ?, ?)`)
+    stmt.bind([userId, name, genre, description, targetWords])
+    stmt.run()
+    const rowId = this.db.exec('SELECT last_insert_rowid() as id')[0].values[0][0]
+    stmt.free()
     this.save()
-    return this.get('SELECT * FROM projects WHERE id = last_insert_rowid()')
+    return this.getProjectById(rowId)
   }
 
   getProjectsByUserId(userId) {
@@ -385,10 +403,10 @@ class Database {
     return this.get('SELECT * FROM goals WHERE id = ?', [id])
   }
 
-  saveChatMessage(userId, projectId, sessionId, role, content) {
+  saveChatMessage(userId, projectId, sessionId, role, content, thinking = null) {
     this.run(
-      `INSERT INTO chat_history (user_id, project_id, session_id, role, content) VALUES (?, ?, ?, ?, ?)`,
-      [userId, projectId, sessionId, role, content]
+      `INSERT INTO chat_history (user_id, project_id, session_id, role, content, thinking) VALUES (?, ?, ?, ?, ?, ?)`,
+      [userId, projectId, sessionId, role, content, thinking]
     )
     this.save()
     return this.get('SELECT * FROM chat_history WHERE id = last_insert_rowid()')
