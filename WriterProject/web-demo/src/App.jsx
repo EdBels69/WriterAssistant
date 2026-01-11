@@ -1328,7 +1328,7 @@ function App() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
+          <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4" role="alert" aria-live="assertive">
             {error}
           </div>
           <p className="text-gray-600 text-sm">Убедитесь, что backend сервер запущен на порту 5001</p>
@@ -1377,7 +1377,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-primary-600 p-2 rounded-lg">
+              <div className="bg-primary-600 p-2 rounded-lg" aria-hidden="true">
                 <BookOpen className="text-white" size={24} />
               </div>
               <h1 className="text-xl font-bold">WriterAssistant</h1>
@@ -1390,27 +1390,34 @@ function App() {
                   {isConnected ? 'Подключено' : 'Отключено'}
                 </span>
               </div>
-              <button 
+              <button
+                type="button"
                 onClick={() => setIsChatOpen(true)}
                 className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                aria-label="Открыть ИИ-помощника"
               >
-                <MessageSquare size={18} />
+                <MessageSquare size={18} aria-hidden="true" />
                 ИИ-помощник
               </button>
               <button 
+                type="button"
                 onClick={() => setShowSettings(true)}
                 className="text-gray-500 hover:text-gray-700"
                 aria-label="Настройки"
               >
-                <Settings size={24} />
+                <Settings size={24} aria-hidden="true" />
               </button>
             </div>
           </div>
 
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-2 mt-4" role="tablist" aria-label="Основная навигация">
             {['dashboard', 'projects'].map((tab) => (
               <button
                 key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                aria-controls={`${tab}-panel`}
                 onClick={() => {
                   setActiveTab(tab)
                   setActiveToolScreen(null)
@@ -1429,59 +1436,70 @@ function App() {
 
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setActiveDropdown(activeDropdown === 'analysis' ? null : 'analysis')}
+                aria-expanded={activeDropdown === 'analysis'}
+                aria-haspopup="true"
                 className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
                   activeDropdown === 'analysis' || activeToolScreen
                     ? 'bg-primary-100 text-primary-700'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <Sparkles size={16} />
+                <Sparkles size={16} aria-hidden="true" />
                 Инструменты анализа
-                <ChevronDown size={14} className={activeDropdown === 'analysis' ? 'rotate-180' : ''} />
+                <ChevronDown size={14} className={activeDropdown === 'analysis' ? 'rotate-180' : ''} aria-hidden="true" />
               </button>
 
               {activeDropdown === 'analysis' && (
-                <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 min-w-[200px] z-50">
+                <div role="menu" aria-label="Инструменты анализа" className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 min-w-[200px] z-50">
                   <div className="p-1">
                     <button
+                      type="button"
+                      role="menuitem"
                       onClick={() => {
                         setActiveToolScreen('data-analysis')
                         setActiveDropdown(null)
                       }}
                       className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center gap-2"
                     >
-                      <FileText size={16} />
+                      <FileText size={16} aria-hidden="true" />
                       Анализ данных
                     </button>
                     <button
+                      type="button"
+                      role="menuitem"
                       onClick={() => {
                         setActiveToolScreen('literature-review')
                         setActiveDropdown(null)
                       }}
                       className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center gap-2"
                     >
-                      <BookOpen size={16} />
+                      <BookOpen size={16} aria-hidden="true" />
                       Обзор литературы
                     </button>
                     <button
+                      type="button"
+                      role="menuitem"
                       onClick={() => {
                         setActiveToolScreen('statistical-analysis')
                         setActiveDropdown(null)
                       }}
                       className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center gap-2"
                     >
-                      <BarChart3 size={16} />
+                      <BarChart3 size={16} aria-hidden="true" />
                       Статистический анализ
                     </button>
                     <button
+                      type="button"
+                      role="menuitem"
                       onClick={() => {
                         setActiveToolScreen('style-formatting')
                         setActiveDropdown(null)
                       }}
                       className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center gap-2"
                     >
-                      <Edit3 size={16} />
+                      <Edit3 size={16} aria-hidden="true" />
                       Стиль и форматирование
                     </button>
                   </div>
@@ -1505,7 +1523,7 @@ function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="p-6 bg-academic-teal-50 rounded-xl border border-academic-teal-100">
                   <div className="p-3 rounded-lg bg-academic-teal-100 w-fit mb-4">
-                    <FileText size={24} className="text-academic-teal-600" />
+                    <FileText size={24} className="text-academic-teal-600" aria-hidden="true" />
                   </div>
                   <h3 className="font-bold text-academic-navy-900 mb-2">Анализ данных</h3>
                   <p className="text-sm text-academic-navy-600">Структурирование идей, извлечение ссылок, генерация гипотез</p>
@@ -1513,7 +1531,7 @@ function App() {
 
                 <div className="p-6 bg-academic-cyan-50 rounded-xl border border-academic-cyan-100">
                   <div className="p-3 rounded-lg bg-academic-cyan-100 w-fit mb-4">
-                    <BookOpen size={24} className="text-academic-cyan-600" />
+                    <BookOpen size={24} className="text-academic-cyan-600" aria-hidden="true" />
                   </div>
                   <h3 className="font-bold text-academic-navy-900 mb-2">Обзор литературы</h3>
                   <p className="text-sm text-academic-navy-600">Нарративный, систематический обзор, мета-анализ</p>
@@ -1521,7 +1539,7 @@ function App() {
 
                 <div className="p-6 bg-academic-amber-50 rounded-xl border border-academic-amber-100">
                   <div className="p-3 rounded-lg bg-academic-amber-100 w-fit mb-4">
-                    <BarChart3 size={24} className="text-academic-amber-600" />
+                    <BarChart3 size={24} className="text-academic-amber-600" aria-hidden="true" />
                   </div>
                   <h3 className="font-bold text-academic-navy-900 mb-2">Статистический анализ</h3>
                   <p className="text-sm text-academic-navy-600">Интерпретация результатов, анализ данных</p>
@@ -1529,7 +1547,7 @@ function App() {
 
                 <div className="p-6 bg-academic-slate-50 rounded-xl border border-academic-slate-100">
                   <div className="p-3 rounded-lg bg-academic-slate-100 w-fit mb-4">
-                    <Edit3 size={24} className="text-academic-slate-600" />
+                    <Edit3 size={24} className="text-academic-slate-600" aria-hidden="true" />
                   </div>
                   <h3 className="font-bold text-academic-navy-900 mb-2">Стиль и форматирование</h3>
                   <p className="text-sm text-academic-navy-600">Академический стиль, редактирование текстов</p>
@@ -1542,11 +1560,13 @@ function App() {
         {activeToolScreen && (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <button 
+              <button
+                type="button"
                 onClick={() => setActiveToolScreen(null)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Вернуться назад"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={20} aria-hidden="true" />
               </button>
               <h1 className="text-2xl font-bold text-academic-navy-900">
                 {activeToolScreen === 'data-analysis' && 'Анализ данных'}
@@ -1558,16 +1578,19 @@ function App() {
 
             <div className="card-elevated p-8">
               {activeToolScreen === 'data-analysis' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <button 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list" aria-label="Инструменты анализа данных">
+                  <button
+                    type="button"
+                    role="listitem"
                     onClick={() => { setSelectedTool('generateIdeas'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'generateIdeas' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
+                    aria-pressed={selectedTool === 'generateIdeas'}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-3 rounded-lg bg-academic-teal-100">
-                        <Sparkles className="text-academic-teal-600" size={24} />
+                        <Sparkles className="text-academic-teal-600" size={24} aria-hidden="true" />
                       </div>
                       <div>
                         <h3 className="font-bold text-academic-navy-900 text-lg">Исследование с нуля</h3>
@@ -1575,15 +1598,18 @@ function App() {
                       </div>
                     </div>
                   </button>
-                  <button 
+                  <button
+                    type="button"
+                    role="listitem"
                     onClick={() => { setSelectedTool('structureIdeas'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'structureIdeas' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
+                    aria-pressed={selectedTool === 'structureIdeas'}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-3 rounded-lg bg-academic-teal-100">
-                        <Sparkles className="text-academic-teal-600" size={24} />
+                        <Sparkles className="text-academic-teal-600" size={24} aria-hidden="true" />
                       </div>
                       <div>
                         <h3 className="font-bold text-academic-navy-900 text-lg">Структурирование идей</h3>
@@ -1591,15 +1617,18 @@ function App() {
                       </div>
                     </div>
                   </button>
-                  <button 
+                  <button
+                    type="button"
+                    role="listitem"
                     onClick={() => { setSelectedTool('extractReferences'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'extractReferences' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
+                    aria-pressed={selectedTool === 'extractReferences'}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-3 rounded-lg bg-academic-rose-100">
-                        <BookOpen className="text-academic-rose-600" size={24} />
+                        <BookOpen className="text-academic-rose-600" size={24} aria-hidden="true" />
                       </div>
                       <div>
                         <h3 className="font-bold text-academic-navy-900 text-lg">Извлечь ссылки</h3>
@@ -1607,15 +1636,18 @@ function App() {
                       </div>
                     </div>
                   </button>
-                  <button 
+                  <button
+                    type="button"
+                    role="listitem"
                     onClick={() => { setSelectedTool('generateHypothesis'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'generateHypothesis' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
+                    aria-pressed={selectedTool === 'generateHypothesis'}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-3 rounded-lg bg-academic-navy-100">
-                        <Activity className="text-academic-navy-600" size={24} />
+                        <Activity className="text-academic-navy-600" size={24} aria-hidden="true" />
                       </div>
                       <div>
                         <h3 className="font-bold text-academic-navy-900 text-lg">Генерация гипотез</h3>
@@ -1623,15 +1655,18 @@ function App() {
                       </div>
                     </div>
                   </button>
-                  <button 
+                  <button
+                    type="button"
+                    role="listitem"
                     onClick={() => setSelectedTool('structureMethodology')}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'structureMethodology' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
+                    aria-pressed={selectedTool === 'structureMethodology'}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-3 rounded-lg bg-academic-emerald-100">
-                        <Edit className="text-academic-emerald-600" size={24} />
+                        <Edit className="text-academic-emerald-600" size={24} aria-hidden="true" />
                       </div>
                       <div>
                         <h3 className="font-bold text-academic-navy-900 text-lg">Методология</h3>
@@ -1643,16 +1678,19 @@ function App() {
               )}
 
               {activeToolScreen === 'literature-review' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6" role="list" aria-label="Инструменты обзора литературы">
                   <button 
+                    type="button"
+                    role="listitem"
                     onClick={() => { setSelectedTool('narrativeReview'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'narrativeReview' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
+                    aria-pressed={selectedTool === 'narrativeReview'}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-3 rounded-lg bg-academic-cyan-100">
-                        <BookOpen className="text-academic-cyan-600" size={24} />
+                        <BookOpen className="text-academic-cyan-600" size={24} aria-hidden="true" />
                       </div>
                       <div>
                         <h3 className="font-bold text-academic-navy-900 text-lg">Нарративный обзор</h3>
@@ -1661,14 +1699,17 @@ function App() {
                     </div>
                   </button>
                   <button 
+                    type="button"
+                    role="listitem"
                     onClick={() => { setSelectedTool('systematicReview'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'systematicReview' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
+                    aria-pressed={selectedTool === 'systematicReview'}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-3 rounded-lg bg-academic-indigo-100">
-                        <BarChart3 className="text-academic-indigo-600" size={24} />
+                        <BarChart3 className="text-academic-indigo-600" size={24} aria-hidden="true" />
                       </div>
                       <div>
                         <h3 className="font-bold text-academic-navy-900 text-lg">Систематический обзор</h3>
@@ -1677,14 +1718,17 @@ function App() {
                     </div>
                   </button>
                   <button 
+                    type="button"
+                    role="listitem"
                     onClick={() => { setSelectedTool('metaAnalysis'); handleAnalyze(); }}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'metaAnalysis' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
+                    aria-pressed={selectedTool === 'metaAnalysis'}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-3 rounded-lg bg-academic-amber-100">
-                        <Target className="text-academic-amber-600" size={24} />
+                        <Target className="text-academic-amber-600" size={24} aria-hidden="true" />
                       </div>
                       <div>
                         <h3 className="font-bold text-academic-navy-900 text-lg">Мета-анализ</h3>
@@ -1696,16 +1740,19 @@ function App() {
               )}
 
               {activeToolScreen === 'statistical-analysis' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <button 
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Инструменты статистического анализа">
+                  <button
+                    type="button"
+                    role="listitem"
                     onClick={() => setSelectedTool('analyzeResults')}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'analyzeResults' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
+                    aria-pressed={selectedTool === 'analyzeResults'}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-3 rounded-lg bg-academic-amber-100">
-                        <BarChart3 className="text-academic-amber-600" size={24} />
+                        <BarChart3 className="text-academic-amber-600" size={24} aria-hidden="true" />
                       </div>
                       <div>
                         <h3 className="font-bold text-academic-navy-900 text-lg">Анализ результатов</h3>
@@ -1717,12 +1764,15 @@ function App() {
               )}
 
               {activeToolScreen === 'style-formatting' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <button 
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Инструменты стиля и форматирования">
+                  <button
+                    type="button"
+                    role="listitem"
                     onClick={() => setSelectedTool('improveStyle')}
                     className={`tool-card p-6 text-left transition-all ${
                       selectedTool === 'improveStyle' ? 'ring-2 ring-academic-teal-500' : ''
                     }`}
+                    aria-pressed={selectedTool === 'improveStyle'}
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-3 rounded-lg bg-academic-slate-100">
@@ -1769,7 +1819,7 @@ function App() {
                       <label className="cursor-pointer block">
                         <input type="file" accept=".txt,.md,.json,.csv,.pdf,.doc,.docx" onChange={handleFileUpload} className="hidden" />
                         <div className="text-center">
-                          <Upload size={32} className="mx-auto mb-2 text-gray-400" />
+                          <Upload size={32} className="mx-auto mb-2 text-gray-400" aria-hidden="true" />
                           <p className="text-sm text-gray-600">Нажмите для загрузки или перетащите файл</p>
                           <p className="text-xs text-gray-400 mt-1">.txt, .md, .json, .csv, .pdf, .doc, .docx</p>
                         </div>
@@ -1800,6 +1850,7 @@ function App() {
                                       : 'text-red-600'
                                   }`} 
                                   size={16} 
+                                  aria-hidden="true"
                                 />
                               </div>
                               <div>
@@ -1810,10 +1861,12 @@ function App() {
                               </div>
                             </div>
                             <button 
+                              type="button"
                               onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== index))}
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              aria-label={`Удалить файл ${doc.originalname}`}
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={16} aria-hidden="true" />
                             </button>
                           </div>
                         ))}
@@ -1821,19 +1874,21 @@ function App() {
                     </div>
                   )}
 
-                  <button 
+                  <button
+                    type="button"
                     onClick={handleAnalyze}
                     disabled={isAnalyzing}
                     className="mt-6 btn btn-primary w-full flex items-center justify-center gap-2"
+                    aria-busy={isAnalyzing}
                   >
                     {isAnalyzing ? (
                       <>
-                        <Activity size={18} className="animate-spin" />
+                        <Activity size={18} className="animate-spin" aria-hidden="true" />
                         Анализирую...
                       </>
                     ) : (
                       <>
-                        <Sparkles size={18} />
+                        <Sparkles size={18} aria-hidden="true" />
                         Запустить анализ
                       </>
                     )}
@@ -1842,7 +1897,7 @@ function App() {
               )}
 
               {textInputResult && (
-                <div className="mt-8 pt-8 border-t border-gray-200">
+                <div className="mt-8 pt-8 border-t border-gray-200" aria-live="polite" aria-atomic="true">
                   <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка результатов...</div>}>
                     <AnalysisResultsSection 
                       analysisResults={[textInputResult]}
@@ -1862,14 +1917,14 @@ function App() {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold">Проекты</h2>
                   <button onClick={handleCreateProject} className="btn btn-primary flex items-center gap-2">
-                    <Plus size={18} />
+                    <Plus size={18} aria-hidden="true" />
                     Новый проект
                   </button>
                 </div>
                 <div className="space-y-4">
                   {projects.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
-                      <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
+                      <BookOpen size={48} className="mx-auto mb-4 text-gray-300" aria-hidden="true" />
                       <p>У вас пока нет проектов</p>
                       <button onClick={handleCreateProject} className="text-primary-600 hover:underline mt-2">
                         Создать первый проект
@@ -1882,29 +1937,36 @@ function App() {
                           key={project.id} 
                           onClick={() => setSelectedProject(project)}
                           className="p-6 bg-white rounded-lg border border-gray-200 hover:shadow-lg hover:border-academic-teal-400 transition-all cursor-pointer"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Открыть проект ${project.name}`}
                         >
                           <div className="flex items-start justify-between mb-4">
                             <div className="bg-academic-teal-100 p-3 rounded-lg">
-                              <BookOpen className="text-academic-teal-600" size={24} />
+                              <BookOpen className="text-academic-teal-600" size={24} aria-hidden="true" />
                             </div>
                             <div className="flex gap-1">
                               <button 
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleExportProject(project, 'pdf')
                                 }}
                                 className="p-2 text-gray-400 hover:text-academic-teal-600 hover:bg-academic-teal-50 rounded-lg transition-colors"
+                                aria-label="Экспортировать проект в PDF"
                               >
-                                <FileText size={16} />
+                                <FileText size={16} aria-hidden="true" />
                               </button>
                               <button 
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleDeleteProject(project.id)
                                 }}
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                aria-label="Удалить проект"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={16} aria-hidden="true" />
                               </button>
                             </div>
                           </div>
@@ -1922,7 +1984,7 @@ function App() {
                           </div>
                           <div className="mt-4 pt-4 border-t border-gray-100">
                             <div className="flex items-center gap-2 text-academic-teal-600 text-sm font-medium">
-                              <Activity size={16} />
+                              <Activity size={16} aria-hidden="true" />
                               Открыть проект
                             </div>
                           </div>
@@ -1938,10 +2000,12 @@ function App() {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <button 
+                        type="button"
                         onClick={() => setSelectedProject(null)}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        aria-label="Вернуться к списку проектов"
                       >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
                       </button>
@@ -1952,35 +2016,38 @@ function App() {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2 px-4 py-2 bg-academic-teal-50 rounded-lg">
-                        <Activity className="text-academic-teal-600" size={18} />
+                        <Activity className="text-academic-teal-600" size={18} aria-hidden="true" />
                         <span className="font-bold text-academic-teal-600">{selectedProject.progress || 0}%</span>
                       </div>
                       <button 
+                        type="button"
                         onClick={() => handleExportProject(selectedProject, 'pdf')}
                         className="btn btn-outline flex items-center gap-2"
                       >
-                        <FileText size={16} />
+                        <FileText size={16} aria-hidden="true" />
                         Экспорт
                       </button>
                       <button 
+                        type="button"
                         onClick={() => handleDeleteProject(selectedProject.id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        aria-label="Удалить проект"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={18} aria-hidden="true" />
                       </button>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="p-4 bg-academic-cream-50 rounded-lg">
                       <div className="flex items-center gap-2 text-sm text-academic-navy-600 mb-1">
-                        <BookOpen size={16} />
+                        <BookOpen size={16} aria-hidden="true" />
                         <span>Разделов</span>
                       </div>
                       <p className="text-2xl font-bold text-academic-navy-900">{chapters.length}</p>
                     </div>
                     <div className="p-4 bg-academic-cream-50 rounded-lg">
                       <div className="flex items-center gap-2 text-sm text-academic-navy-600 mb-1">
-                        <MessageSquare size={16} />
+                        <MessageSquare size={16} aria-hidden="true" />
                         <span>Слов</span>
                       </div>
                       <p className="text-2xl font-bold text-academic-navy-900">{chapters.reduce((sum, ch) => sum + (ch.wordCount || 0), 0)}</p>
@@ -1989,8 +2056,12 @@ function App() {
                 </div>
 
                 <div className="mb-6">
-                  <div className="flex gap-2 border-b border-gray-200">
+                  <div className="flex gap-2 border-b border-gray-200" role="tablist" aria-label="Вкладки проекта">
                     <button
+                      type="button"
+                      role="tab"
+                      aria-selected={projectActiveTab === 'overview'}
+                      aria-controls="project-overview-panel"
                       onClick={() => setProjectActiveTab('overview')}
                       className={`px-6 py-3 font-medium transition-colors ${
                         projectActiveTab === 'overview'
@@ -2001,6 +2072,10 @@ function App() {
                       Обзор
                     </button>
                     <button
+                      type="button"
+                      role="tab"
+                      aria-selected={projectActiveTab === 'analysis'}
+                      aria-controls="project-analysis-panel"
                       onClick={() => setProjectActiveTab('analysis')}
                       className={`px-6 py-3 font-medium transition-colors ${
                         projectActiveTab === 'analysis'
@@ -2011,6 +2086,10 @@ function App() {
                       Результаты анализа
                     </button>
                     <button
+                      type="button"
+                      role="tab"
+                      aria-selected={projectActiveTab === 'pipeline'}
+                      aria-controls="project-pipeline-panel"
                       onClick={() => setProjectActiveTab('pipeline')}
                       className={`px-6 py-3 font-medium transition-colors ${
                         projectActiveTab === 'pipeline'
@@ -2021,6 +2100,10 @@ function App() {
                       Пайплайн
                     </button>
                     <button
+                      type="button"
+                      role="tab"
+                      aria-selected={projectActiveTab === 'tools'}
+                      aria-controls="project-tools-panel"
                       onClick={() => setProjectActiveTab('tools')}
                       className={`px-6 py-3 font-medium transition-colors ${
                         projectActiveTab === 'tools'
@@ -2034,7 +2117,12 @@ function App() {
                 </div>
 
                 {projectActiveTab === 'overview' && (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div 
+                    id="project-overview-panel"
+                    role="tabpanel"
+                    aria-labelledby="overview-tab"
+                    className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+                  >
                     <div className="lg:col-span-2 space-y-6">
                       <div className="card p-6">
                         <h3 className="text-lg font-bold text-academic-navy-900 mb-4">Разделы исследования</h3>
@@ -2060,15 +2148,17 @@ function App() {
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm text-gray-400">{chapter.wordCount || 0} слов</span>
                                   <button 
+                                    type="button"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleDeleteChapter(chapter.id)
                                     }}
                                     className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                    aria-label={`Удалить раздел ${chapter.title}`}
                                   >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={16} aria-hidden="true" />
                                   </button>
-                                  <ChevronRight size={18} className="text-gray-400" />
+                                  <ChevronRight size={18} className="text-gray-400" aria-hidden="true" />
                                 </div>
                               </div>
                             </div>
@@ -2076,11 +2166,12 @@ function App() {
                         </div>
                       )}
                       <button 
+                        type="button"
                         onClick={handleCreateChapter}
                         className="w-full mt-4 p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-academic-teal-400 hover:text-academic-teal-600 transition-colors"
                       >
                         <div className="flex items-center justify-center gap-2">
-                          <Plus size={18} />
+                          <Plus size={18} aria-hidden="true" />
                           <span>Добавить раздел</span>
                         </div>
                       </button>
@@ -2090,7 +2181,7 @@ function App() {
                       <h3 className="text-lg font-bold text-academic-navy-900 mb-4">Загруженные файлы</h3>
                       {uploadedFiles.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
-                          <Upload size={48} className="mx-auto mb-4 text-gray-300" />
+                          <Upload size={48} className="mx-auto mb-4 text-gray-300" aria-hidden="true" />
                           <p>Файлы не загружены</p>
                           <p className="text-sm mt-2">Загрузите источники для анализа</p>
                         </div>
@@ -2115,6 +2206,7 @@ function App() {
                                         : 'text-red-600'
                                     }`} 
                                     size={16} 
+                                    aria-hidden="true"
                                   />
                                 </div>
                                 <div>
@@ -2125,21 +2217,24 @@ function App() {
                                 </div>
                               </div>
                               <button 
+                                type="button"
                                 onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== index))}
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                aria-label={`Удалить файл ${doc.originalname}`}
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={16} aria-hidden="true" />
                               </button>
                             </div>
                           ))}
                         </div>
                       )}
                       <button 
+                        type="button"
                         onClick={handleFileUpload}
                         className="w-full mt-4 p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-academic-teal-400 hover:text-academic-teal-600 transition-colors"
                       >
                         <div className="flex items-center justify-center gap-2">
-                          <Upload size={18} />
+                          <Upload size={18} aria-hidden="true" />
                           <span>Загрузить файл</span>
                         </div>
                       </button>
@@ -2150,7 +2245,7 @@ function App() {
                       <div className="space-y-3 mb-4">
                         {comments.length === 0 ? (
                           <div className="text-center py-8 text-gray-500">
-                            <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" />
+                            <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" aria-hidden="true" />
                             <p>Комментариев пока нет</p>
                           </div>
                         ) : (
@@ -2184,6 +2279,7 @@ function App() {
                       className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-academic-teal-500 text-sm"
                     />
                     <button
+                      type="button"
                       onClick={() => {
                         const input = document.getElementById('comment-input')
                         if (input) {
@@ -2192,8 +2288,9 @@ function App() {
                         }
                       }}
                       className="px-4 py-2 bg-academic-teal-600 text-white rounded-lg hover:bg-academic-teal-700 transition-colors"
+                      aria-label="Отправить комментарий"
                     >
-                      <Send size={18} />
+                      <Send size={18} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -2203,40 +2300,63 @@ function App() {
                 )}
                 
                 {projectActiveTab === 'analysis' && (
-                  <AnalysisResultsSection 
-                    analysisResults={projectAnalysisResults}
-                    documentName={selectedProject.name}
-                  />
+                  <div 
+                    id="project-analysis-panel"
+                    role="tabpanel"
+                    aria-labelledby="analysis-tab"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <AnalysisResultsSection 
+                      analysisResults={projectAnalysisResults}
+                      documentName={selectedProject.name}
+                    />
+                  </div>
                 )}
 
                 {projectActiveTab === 'pipeline' && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка визуализации...</div>}>
-                      <PipelineVisualizer 
-                        pipeline={selectedPipelineTemplate}
-                        pipelineId={activePipelineId}
-                        onStart={() => setShowPipelineVisualization(true)}
-                        onPause={() => setShowPipelineVisualization(false)}
-                        onReset={() => setActivePipelineId(null)}
-                      />
-                    </Suspense>
-                    <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка агентов...</div>}>
-                      <MultiAgentFlow 
-                        pipeline={selectedPipelineTemplate}
-                        pipelineId={activePipelineId}
-                      />
-                    </Suspense>
+                  <div 
+                    id="project-pipeline-panel"
+                    role="tabpanel"
+                    aria-labelledby="pipeline-tab"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка визуализации...</div>}>
+                        <PipelineVisualizer 
+                          pipeline={selectedPipelineTemplate}
+                          pipelineId={activePipelineId}
+                          onStart={() => setShowPipelineVisualization(true)}
+                          onPause={() => setShowPipelineVisualization(false)}
+                          onReset={() => setActivePipelineId(null)}
+                        />
+                      </Suspense>
+                      <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка агентов...</div>}>
+                        <MultiAgentFlow 
+                          pipeline={selectedPipelineTemplate}
+                          pipelineId={activePipelineId}
+                        />
+                      </Suspense>
+                    </div>
                   </div>
                 )}
 
                 {projectActiveTab === 'tools' && (
-                  <div className="card-elevated p-8">
-                    <h3 className="text-lg font-bold text-academic-navy-900 mb-6">Инструменты анализа</h3>
+                  <div 
+                    id="project-tools-panel"
+                    role="tabpanel"
+                    aria-labelledby="tools-tab"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <div className="card-elevated p-8">
+                      <h3 className="text-lg font-bold text-academic-navy-900 mb-6">Инструменты анализа</h3>
                     
                     <div className="space-y-6">
                       <div>
                         <h4 className="text-sm font-semibold text-academic-navy-700 mb-4 flex items-center gap-2">
-                          <FileText size={18} className="text-academic-teal-600" />
+                          <FileText size={18} className="text-academic-teal-600" aria-hidden="true" />
                           Анализ данных
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2325,7 +2445,7 @@ function App() {
 
                       <div>
                         <h4 className="text-sm font-semibold text-academic-navy-700 mb-4 flex items-center gap-2">
-                          <BookOpen size={18} className="text-academic-cyan-600" />
+                          <BookOpen size={18} className="text-academic-cyan-600" aria-hidden="true" />
                           Обзор литературы
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2382,7 +2502,7 @@ function App() {
 
                       <div>
                         <h4 className="text-sm font-semibold text-academic-navy-700 mb-4 flex items-center gap-2">
-                          <BarChart3 size={18} className="text-academic-amber-600" />
+                          <BarChart3 size={18} className="text-academic-amber-600" aria-hidden="true" />
                           Статистический анализ
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2407,7 +2527,7 @@ function App() {
 
                       <div>
                         <h4 className="text-sm font-semibold text-academic-navy-700 mb-4 flex items-center gap-2">
-                          <Edit3 size={18} className="text-academic-slate-600" />
+                          <Edit3 size={18} className="text-academic-slate-600" aria-hidden="true" />
                           Стиль и форматирование
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2463,7 +2583,7 @@ function App() {
                             <label className="cursor-pointer block">
                               <input type="file" accept=".txt,.md,.json,.csv,.pdf,.doc,.docx" onChange={handleFileUpload} className="hidden" />
                               <div className="text-center">
-                                <Upload size={32} className="mx-auto mb-2 text-gray-400" />
+                                <Upload size={32} className="mx-auto mb-2 text-gray-400" aria-hidden="true" />
                                 <p className="text-sm text-gray-600">Нажмите для загрузки или перетащите файл</p>
                                 <p className="text-xs text-gray-400 mt-1">.txt, .md, .json, .csv, .pdf, .doc, .docx</p>
                               </div>
@@ -2522,12 +2642,12 @@ function App() {
                         >
                           {isAnalyzing ? (
                             <>
-                              <Activity size={18} className="animate-spin" />
+                              <Activity size={18} className="animate-spin" aria-hidden="true" />
                               Анализирую...
                             </>
                           ) : (
                             <>
-                              <Sparkles size={18} />
+                              <Sparkles size={18} aria-hidden="true" />
                               Запустить анализ
                             </>
                           )}
@@ -2536,7 +2656,7 @@ function App() {
                     )}
 
                     {textInputResult && (
-                      <div className="mt-8 pt-8 border-t border-gray-200">
+                      <div className="mt-8 pt-8 border-t border-gray-200" aria-live="polite" aria-atomic="true">
                         <Suspense fallback={<div className="text-center py-8 text-gray-500">Загрузка результатов...</div>}>
                           <AnalysisResultsSection 
                             analysisResults={[textInputResult]}
@@ -2545,6 +2665,7 @@ function App() {
                         </Suspense>
                       </div>
                     )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -2565,14 +2686,16 @@ function App() {
                 </div>
               </div>
               <button 
+                type="button"
                 onClick={() => setIsChatOpen(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Закрыть чат"
               >
-                <Trash2 size={20} />
+                <Trash2 size={20} aria-hidden="true" />
               </button>
             </div>
 
-            <div className="flex border-b">
+            <div className="flex border-b" role="tablist">
               {[
                 { mode: 'creative', label: 'Креативный' },
                 { mode: 'editor', label: 'Редактор' },
@@ -2580,19 +2703,29 @@ function App() {
               ].map((item) => (
                 <button
                   key={item.mode}
+                  type="button"
                   onClick={() => setChatMode(item.mode)}
                   className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                     chatMode === item.mode
                       ? 'bg-primary-50 text-primary-700 border-b-2 border-primary-600'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
+                  role="tab"
+                  aria-selected={chatMode === item.mode}
+                  aria-controls="chat-content"
                 >
                   {item.label}
                 </button>
               ))}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div 
+              id="chat-content"
+              className="flex-1 overflow-y-auto p-4 space-y-4"
+              role="tabpanel"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               {chatMessages.map((message, index) => (
                 <div
                   key={index}
@@ -2602,7 +2735,7 @@ function App() {
                     {message.thinking && (
                       <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
                         <div className="text-xs text-blue-600 font-semibold mb-1 flex items-center gap-1">
-                          <Brain size={12} />
+                          <Brain size={12} aria-hidden="true" />
                           Рассуждение
                         </div>
                         <p className="text-sm text-gray-700 whitespace-pre-wrap">{message.thinking}</p>
@@ -2630,8 +2763,9 @@ function App() {
                     accept=".txt,.md,.json,.csv"
                     onChange={handleFileUpload}
                     className="hidden"
+                    aria-label="Загрузить файл в чат"
                   />
-                  <FileText size={20} />
+                  <FileText size={20} aria-hidden="true" />
                 </label>
                 <input
                   type="text"
@@ -2640,13 +2774,16 @@ function App() {
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder="Напишите сообщение..."
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  aria-label="Поле для ввода сообщения"
                 />
                 <button
+                  type="button"
                   onClick={handleSendMessage}
                   disabled={!currentInput.trim()}
                   className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Отправить сообщение"
                 >
-                  <MessageSquare size={20} />
+                  <MessageSquare size={20} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -2656,17 +2793,25 @@ function App() {
 
       {showTemplateSelector && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+          <div 
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="template-selector-title"
+            aria-describedby="template-selector-description"
+          >
             <div className="flex items-center justify-between p-4 border-b">
               <div>
-                <h3 className="font-bold text-xl">Выберите шаблон пайплайна</h3>
-                <p className="text-sm text-gray-600">Выберите оптимальный рабочий процесс для вашего исследования</p>
+                <h3 id="template-selector-title" className="font-bold text-xl">Выберите шаблон пайплайна</h3>
+                <p id="template-selector-description" className="text-sm text-gray-600">Выберите оптимальный рабочий процесс для вашего исследования</p>
               </div>
               <button 
+                type="button"
                 onClick={() => setShowTemplateSelector(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Закрыть выбор шаблона"
               >
-                <Trash2 size={20} />
+                <Trash2 size={20} aria-hidden="true" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
@@ -2680,29 +2825,38 @@ function App() {
 
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div 
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-title"
+            aria-describedby="settings-description"
+          >
             <div className="flex items-center justify-between p-6 border-b">
               <div>
-                <h3 className="font-bold text-xl">Настройки</h3>
-                <p className="text-sm text-gray-600">Конфигурация моделей и API</p>
+                <h3 id="settings-title" className="font-bold text-xl">Настройки</h3>
+                <p id="settings-description" className="text-sm text-gray-600">Конфигурация моделей и API</p>
               </div>
               <button 
+                type="button"
                 onClick={() => setShowSettings(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Закрыть настройки"
               >
-                <Trash2 size={20} />
+                <Trash2 size={20} aria-hidden="true" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               <div>
                 <h4 className="font-semibold text-academic-navy-900 mb-4 flex items-center gap-2">
-                  <Sparkles size={18} className="text-primary-600" />
+                  <Sparkles size={18} className="text-primary-600" aria-hidden="true" />
                   Основная модель
                 </h4>
                 <select
                   value={settings.primaryModel}
                   onChange={(e) => handleSettingsChange('primaryModel', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  aria-label="Выберите основную модель ИИ"
                 >
                   <option value="glm-4.7">GLM-4.7 (Z.ai)</option>
                   <option value="deepseek-r1">DeepSeek R1 0528 (OpenRouter - бесплатно)</option>
@@ -2712,7 +2866,7 @@ function App() {
 
               <div>
                 <h4 className="font-semibold text-academic-navy-900 mb-4 flex items-center gap-2">
-                  <Activity size={18} className="text-primary-600" />
+                  <Activity size={18} className="text-primary-600" aria-hidden="true" />
                   Режим мышления GLM-4.7
                 </h4>
                 <div className="grid grid-cols-1 gap-2">
@@ -2723,12 +2877,15 @@ function App() {
                   ].map((option) => (
                     <button
                       key={option.mode}
+                      type="button"
                       onClick={() => handleSettingsChange('thinkingMode', option.mode)}
                       className={`p-4 rounded-lg border-2 text-left transition-colors ${
                         settings.thinkingMode === option.mode
                           ? 'border-primary-600 bg-primary-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
+                      aria-pressed={settings.thinkingMode === option.mode}
+                      aria-label={`Режим мышления: ${option.label} - ${option.desc}`}
                     >
                       <div className="font-semibold text-academic-navy-900">{option.label}</div>
                       <div className="text-sm text-gray-600">{option.desc}</div>
@@ -2739,13 +2896,14 @@ function App() {
 
               <div>
                 <h4 className="font-semibold text-academic-navy-900 mb-4 flex items-center gap-2">
-                  <Target size={18} className="text-primary-600" />
+                  <Target size={18} className="text-primary-600" aria-hidden="true" />
                   Резервная модель
                 </h4>
                 <select
                   value={settings.fallbackModel}
                   onChange={(e) => handleSettingsChange('fallbackModel', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  aria-label="Выберите резервную модель ИИ"
                 >
                   <option value="deepseek-r1">DeepSeek R1 0528 (OpenRouter - бесплатно)</option>
                   <option value="qwen">Qwen 2.5 Coder (OpenRouter)</option>
@@ -2754,13 +2912,14 @@ function App() {
 
               <div>
                 <h4 className="font-semibold text-academic-navy-900 mb-4 flex items-center gap-2">
-                  <Edit size={18} className="text-primary-600" />
+                  <Edit size={18} className="text-primary-600" aria-hidden="true" />
                   Модель редактуры текста
                 </h4>
                 <select
                   value={settings.textEditingModel}
                   onChange={(e) => handleSettingsChange('textEditingModel', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  aria-label="Выберите модель редактуры текста"
                 >
                   <option value="qwen">Qwen 2.5 Coder (OpenRouter - бесплатно)</option>
                   <option value="glm-4.7">GLM-4.7 (Z.ai)</option>
@@ -2769,22 +2928,24 @@ function App() {
 
               <div>
                 <h4 className="font-semibold text-academic-navy-900 mb-4 flex items-center gap-2">
-                  <Settings size={18} className="text-primary-600" />
+                  <Settings size={18} className="text-primary-600" aria-hidden="true" />
                   API конфигурация
                 </h4>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="openrouter-key-input">
                       OpenRouter API ключ (для DeepSeek R1 / Qwen)
                     </label>
                     <input
+                      id="openrouter-key-input"
                       type="password"
                       value={settings.openRouterKey}
                       onChange={(e) => handleSettingsChange('openRouterKey', e.target.value)}
                       placeholder="sk-or-v1-..."
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      aria-describedby="openrouter-key-help"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p id="openrouter-key-help" className="text-xs text-gray-500 mt-1">
                       Получите ключ на <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">openrouter.ai/keys</a>
                     </p>
                   </div>
@@ -2795,10 +2956,11 @@ function App() {
                       checked={settings.useCodingAPI}
                       onChange={(e) => handleSettingsChange('useCodingAPI', e.target.checked)}
                       className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+                      aria-describedby="coding-api-help"
                     />
                     <div>
                       <div className="font-medium text-academic-navy-900">Использовать Coding API</div>
-                      <div className="text-sm text-gray-600">GLM-4.7 через coding endpoint (без проверки баланса)</div>
+                      <div id="coding-api-help" className="text-sm text-gray-600">GLM-4.7 через coding endpoint (без проверки баланса)</div>
                     </div>
                   </label>
                 </div>
@@ -2806,12 +2968,14 @@ function App() {
             </div>
             <div className="flex gap-3 p-6 border-t">
               <button
+                type="button"
                 onClick={() => setShowSettings(false)}
                 className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Отмена
               </button>
               <button
+                type="button"
                 onClick={handleSaveSettings}
                 className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >

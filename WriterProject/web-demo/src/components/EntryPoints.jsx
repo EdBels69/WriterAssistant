@@ -118,32 +118,44 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-academic-navy-700 mb-2">Способ взаимодействия</label>
+      <label className="block text-sm font-medium text-academic-navy-700 mb-2" id="interaction-mode-label">Способ взаимодействия</label>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4" role="radiogroup" aria-labelledby="interaction-mode-label">
         <button
+          type="button"
           onClick={() => handleModeChange('chat')}
           className={`entry-mode-btn ${inputMode === 'chat' ? 'active' : ''}`}
+          role="radio"
+          aria-checked={inputMode === 'chat'}
+          aria-label="Режим чат-идеации"
         >
-          <MessageSquare size={24} />
+          <MessageSquare size={24} aria-hidden="true" />
           <span className="mode-label">Чат-идеация</span>
           <span className="mode-description">Свободный диалог для генерации идей</span>
         </button>
 
         <button
+          type="button"
           onClick={() => handleModeChange('text')}
           className={`entry-mode-btn ${inputMode === 'text' ? 'active' : ''}`}
+          role="radio"
+          aria-checked={inputMode === 'text'}
+          aria-label="Режим ввода текста"
         >
-          <Edit3 size={24} />
+          <Edit3 size={24} aria-hidden="true" />
           <span className="mode-label">Ввод текста</span>
           <span className="mode-description">Вставьте текст из Word для обработки</span>
         </button>
 
         <button
+          type="button"
           onClick={() => handleModeChange('file')}
           className={`entry-mode-btn ${inputMode === 'file' ? 'active' : ''}`}
+          role="radio"
+          aria-checked={inputMode === 'file'}
+          aria-label="Режим загрузки файлов"
         >
-          <FileText size={24} />
+          <FileText size={24} aria-hidden="true" />
           <span className="mode-label">Загрузка файлов</span>
           <span className="mode-description">Загрузите PDF для анализа и вопросов</span>
         </button>
@@ -151,17 +163,17 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
 
       {inputMode === 'chat' && (
         <div className="chat-container mt-4">
-          <div className="chat-messages">
+          <div className="chat-messages" role="log" aria-live="polite" aria-atomic="false" aria-label="Чат с ИИ-ассистентом">
             {chatMessages.length === 0 && (
               <div className="text-center text-gray-400 py-8">
-                <MessageSquare size={32} className="mx-auto mb-2" />
+                <MessageSquare size={32} className="mx-auto mb-2" aria-hidden="true" />
                 <p>Начните диалог с ИИ-ассистентом</p>
                 <p className="text-sm">Задавайте вопросы, делитесь идеями, получайте рекомендации</p>
               </div>
             )}
 
             {chatMessages.map((msg) => (
-              <div key={msg.id} className={`chat-message ${msg.type}`}>
+              <div key={msg.id} className={`chat-message ${msg.type}`} role="article" aria-label={`${msg.type === 'user' ? 'Сообщение от вас' : 'Сообщение от ИИ-ассистента'} от ${new Date(msg.timestamp).toLocaleTimeString('ru-RU')}`}>
                 <div className="chat-message-meta">
                   {msg.type === 'user' ? 'Вы' : 'ИИ-ассистент'} • {new Date(msg.timestamp).toLocaleTimeString('ru-RU')}
                 </div>
@@ -186,23 +198,26 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
               onKeyPress={handleKeyPress}
               placeholder="Введите ваше сообщение или вопрос..."
               className="flex-1 input-field"
+              aria-label="Введите сообщение для ИИ-ассистента"
             />
             <button
+              type="button"
               onClick={handleSendMessage}
               disabled={!chatInput.trim()}
               className="btn btn-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Отправить сообщение"
             >
-              <MessageSquare size={18} />
+              <MessageSquare size={18} aria-hidden="true" />
             </button>
           </div>
 
           {chatMessages.length > 0 && (
-            <div className="context-panel">
+            <div className="context-panel" role="region" aria-label="Информация о диалоге">
               <div className="context-title">Контекст диалога</div>
               <div className="context-content">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm">Сообщений: {chatMessages.length}</span>
-                  <button onClick={clearChat} className="text-xs text-red-600 hover:text-red-700">
+                  <button type="button" onClick={clearChat} className="text-xs text-red-600 hover:text-red-700" aria-label="Очистить все сообщения в чате">
                     Очистить диалог
                   </button>
                 </div>
@@ -229,6 +244,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
 
 Вы можете применить к этому тексту все инструменты анализа:"
             className="textarea-field h-64"
+            aria-label="Текстовое поле для ввода и обработки текста"
           />
 
           <div className="flex items-center justify-between text-sm text-gray-500">
@@ -253,7 +269,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
 
       {inputMode === 'file' && (
         <div className="file-input-container mt-4">
-          <div className="p-4 bg-white rounded-lg border-2 border-dashed border-gray-300 hover:border-academic-teal-400 transition-colors">
+          <div className="p-4 bg-white rounded-lg border-2 border-dashed border-gray-300 hover:border-academic-teal-400 transition-colors" role="region" aria-label="Зона загрузки файлов">
             <label className="cursor-pointer block">
               <input 
                 type="file" 
@@ -263,7 +279,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
                 className="hidden" 
               />
               <div className="text-center">
-                <FileText size={32} className="mx-auto mb-2 text-gray-400" />
+                <FileText size={32} className="mx-auto mb-2 text-gray-400" aria-hidden="true" />
                 <p className="text-sm text-gray-600">Нажмите для загрузки или перетащите файлы</p>
                 <p className="text-xs text-gray-400 mt-1">.txt, .md, .json, .csv, .pdf, .doc, .docx (поддерживается несколько файлов)</p>
               </div>
@@ -281,17 +297,19 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
                   Очистить все
                 </button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2" role="list" aria-label="Загруженные файлы">
                 {uploadedFiles.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded" role="listitem">
                     <div className="flex items-center gap-2">
-                      <FileText size={16} className="text-gray-500" />
+                      <FileText size={16} className="text-gray-500" aria-hidden="true" />
                       <span className="text-sm text-gray-700 truncate max-w-xs">{file.name}</span>
                       <span className="text-xs text-gray-400">({(file.size / 1024).toFixed(1)} KB)</span>
                     </div>
                     <button 
+                      type="button"
                       onClick={() => removeFile(index)}
                       className="text-red-600 hover:text-red-700"
+                      aria-label={`Удалить файл ${file.name}`}
                     >
                       ✕
                     </button>
