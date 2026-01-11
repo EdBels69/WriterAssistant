@@ -15,6 +15,8 @@ import CommentsController from './controllers/CommentsController.js'
 import UploadController from './controllers/UploadController.js'
 import DocumentController from './controllers/DocumentController.js'
 import WebSocketServer from './websocket/WebSocketServer.js'
+import { errorHandler, notFound } from './middleware/errorHandler.js'
+import { aiLimiter, apiLimiter, uploadLimiter } from './middleware/rateLimiter.js'
 
 dotenv.config()
 
@@ -25,7 +27,7 @@ const app = express()
 const PORT = process.env.PORT || 5000
 
 app.use(cors({
-  origin: ['http://localhost:3001', 'http://localhost:3002', 'http://192.168.0.139:3001', 'http://192.168.0.139:3002', 'http://198.18.0.1:3001', 'http://198.18.0.1:3002'],
+  origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3001'],
   credentials: true
 }))
 app.use(express.json())
@@ -44,28 +46,27 @@ const commentsController = new CommentsController(db)
 const uploadController = new UploadController()
 const documentController = new DocumentController()
 
-app.use('/api/projects', projectController.router)
-app.use('/api/chat', chatController.router)
-app.use('/api/statistics', statisticsController.router)
-app.use('/api/ai', aiController.router)
-app.use('/api/export', exportController.router)
-app.use('/api/comments', commentsController.router)
-app.use('/api/upload', uploadController.router)
-app.use('/api/documents', documentController.router)
+app.use('/api/projects', apiLimiter, projectController.router)
+app.use('/api/chat', apiLimiter, chatController.router)
+app.use('/api/statistics', apiLimiter, statisticsController.router)
+app.use('/api/ai', aiLimiter, aiController.router)
+app.use('/api/export', apiLimiter, exportController.router)
+app.use('/api/comments', apiLimiter, commentsController.router)
+app.use('/api/upload', uploadLimiter, uploadController.router)
+app.use('/api/documents', apiLimiter, documentController.router)
+app.use('/api/metrics', apiLimiter, metricsRouter)
+app.use('/api/self-test', apiLimiter, selfTestRouter)
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-app.use((err, req, res, next) => {
-  console.error(err.stack)
-  res.status(500).json({ error: 'Something went wrong!' })
-})
+app.use(notFound)
+app.use(errorHandler)
 
 async function startServer() {
   try {
     await db.init()
-    console.log('Database initialized successfully')
     
     const server = app.listen(PORT, () => {
       console.log(`WriterAssistant Backend running on port ${PORT}`)
