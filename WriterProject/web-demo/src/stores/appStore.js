@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware'
 const useAppStore = create(
   persist(
     (set, get) => ({
+      userId: localStorage.getItem('userId') || 'demo-user',
       activeTab: 'dashboard',
       activeToolScreen: null,
       activeDropdown: null,
@@ -31,6 +32,8 @@ const useAppStore = create(
       projectAnalysisResults: [],
       projectActiveTab: 'overview',
       chapters: [],
+      analysisResults: [],
+      selectedTemplate: null,
 
       showTemplateSelector: false,
       selectedPipelineTemplate: null,
@@ -72,6 +75,8 @@ const useAppStore = create(
       setProjectAnalysisResults: (projectAnalysisResults) => set({ projectAnalysisResults }),
       setProjectActiveTab: (projectActiveTab) => set({ projectActiveTab }),
       setChapters: (chapters) => set({ chapters }),
+      setAnalysisResults: (analysisResults) => set({ analysisResults }),
+      setSelectedTemplate: (selectedTemplate) => set({ selectedTemplate }),
 
       setShowTemplateSelector: (showTemplateSelector) => set({ showTemplateSelector }),
       setSelectedPipelineTemplate: (selectedPipelineTemplate) => set({ selectedPipelineTemplate }),
@@ -111,7 +116,13 @@ const useAppStore = create(
         settings: state.settings,
         chatMode: state.chatMode,
         inputMode: state.inputMode,
-        documentType: state.documentType
+        documentType: state.documentType,
+        showTemplateSelector: state.showTemplateSelector,
+        selectedPipelineTemplate: state.selectedPipelineTemplate,
+        activePipelineId: state.activePipelineId,
+        selectedProject: state.selectedProject,
+        projectActiveTab: state.projectActiveTab,
+        selectedTemplate: state.selectedTemplate
       })
     }
   )
