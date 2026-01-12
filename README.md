@@ -192,6 +192,34 @@ Real-time collaboration events:
 - `typing_stop`: Typing stopped
 - `broadcast`: General broadcast
 
+## Quick Start Scripts
+
+### Start All Servers
+```bash
+./WriterProject/start-all.sh
+```
+This script will:
+1. Install dependencies if needed
+2. Start backend server (port 5001)
+3. Start frontend server (port 5173)
+
+### Run All Tests
+```bash
+./WriterProject/run-tests.sh
+```
+This script will run both backend and frontend unit tests.
+
+### Manual Backend Testing
+```bash
+cd WriterProject/backend
+node manual-test.js
+```
+This script tests critical endpoints:
+- `/health` - Health check
+- `/api/self-test/run/unit` - Self-test runner
+- `/api/ai/generate-hypothesis` - AI generation
+- `/api/metrics` - Metrics collection
+
 ## Development
 
 ### Backend Development
@@ -219,6 +247,35 @@ node check_database.js
 Proprietary - All rights reserved
 
 ## Version History
+
+### v7.0.0 - Review.md Refactoring Complete (2026-01-12)
+- Centralized error handling middleware
+- Schema-based request validation
+- Environment variable configuration
+- Modular prompt system
+- Unified AI request handler
+- Error boundary for lazy-loaded components
+- Custom error classes (NotFoundError, ExternalServiceError)
+- Monolithic App.jsx decomposed into modular components
+- Automated testing framework (Jest + Vitest)
+- 100+ unit tests covering critical functionality
+- Metrics collection and monitoring endpoints
+- Self-test runner for automated validation
+- Integration tests for AI endpoints
+- Optimized GLM-4.7 prompts
+- Enhanced OutputValidator with detailed validation
+- Free OpenRouter models (Gemma 2, Mistral 7B, Llama 3.2)
+- PrismaFlowGenerator for systematic reviews
+- ForestPlotGenerator for meta-analysis
+- Humanizer for AI text readability improvement
+- TTL response caching (5 mins) in SmartRouter
+- Lazy loading of backend services
+- Connection pooling in GLMService
+- Request deduplication in GLMService
+- React.memo for 6 frontend components
+- Debounce for 4 input handlers
+- Automated git push scripts
+- Project backup automation
 
 ### v1.0.0 - ULTRATHINK Edition
 - Multi-agent architecture with ABMCTS

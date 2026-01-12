@@ -646,4 +646,4 @@ class OutputValidator {
   }
 }
 
-module.exports = OutputValidator
+export default OutputValidator

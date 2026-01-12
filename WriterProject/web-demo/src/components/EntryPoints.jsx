@@ -1,5 +1,10 @@
 import React, { useState } from 'react'
 import { MessageSquare, Edit3, FileText } from 'lucide-react'
+import { debounce } from '../utils/debounce'
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024
+const MAX_TOTAL_SIZE = 100 * 1024 * 1024
+const ALLOWED_FILE_TYPES = ['.txt', '.md', '.json', '.csv', '.pdf', '.doc', '.docx']
 
 const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
   const [chatMessages, setChatMessages] = useState([])
@@ -7,14 +12,66 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
   const [context, setContext] = useState({})
   const [uploadedFiles, setUploadedFiles] = useState([])
   const [fileQuestion, setFileQuestion] = useState('')
+  const [fileErrors, setFileErrors] = useState([])
 
-  const handleModeChange = (mode) => {
-    setInputMode(mode)
+  const debouncedSetChatInput = debounce(setChatInput, 300)
+  const debouncedSetInputText = debounce(setInputText, 300)
+  const debouncedSetFileQuestion = debounce(setFileQuestion, 300)
+
+  const calculateTotalSize = (files) => {
+    return files.reduce((total, file) => total + file.size, 0)
+  }
+
+  const validateFile = (file) => {
+    const errors = []
+
+    if (file.size > MAX_FILE_SIZE) {
+      errors.push(`Файл "${file.name}" превышает лимит ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)} MB`)
+    }
+
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase()
+    if (!ALLOWED_FILE_TYPES.includes(fileExtension)) {
+      errors.push(`Файл "${file.name}" имеет неподдерживаемый формат. Допустимые: ${ALLOWED_FILE_TYPES.join(', ')}`)
+    }
+
+    return errors
   }
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files)
-    setUploadedFiles(prev => [...prev, ...files])
+    const newErrors = []
+
+    const currentTotalSize = calculateTotalSize(uploadedFiles)
+    const newFilesTotalSize = calculateTotalSize(files)
+
+    if (currentTotalSize + newFilesTotalSize > MAX_TOTAL_SIZE) {
+      newErrors.push(`Общий размер файлов превышает лимит ${(MAX_TOTAL_SIZE / 1024 / 1024).toFixed(0)} MB`)
+      setFileErrors(newErrors)
+      return
+    }
+
+    const validFiles = []
+    files.forEach(file => {
+      const fileErrors = validateFile(file)
+      if (fileErrors.length > 0) {
+        newErrors.push(...fileErrors)
+      } else {
+        validFiles.push(file)
+      }
+    })
+
+    if (newErrors.length > 0) {
+      setFileErrors(newErrors)
+    }
+
+    if (validFiles.length > 0) {
+      setUploadedFiles(prev => [...prev, ...validFiles])
+      setTimeout(() => setFileErrors([]), 5000)
+    }
+  }
+
+  const handleModeChange = (mode) => {
+    setInputMode(mode)
   }
 
   const removeFile = (index) => {
@@ -194,7 +251,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
             <input
               type="text"
               value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
+              onChange={(e) => debouncedSetChatInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Введите ваше сообщение или вопрос..."
               className="flex-1 input-field"
@@ -239,7 +296,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
         <div className="text-input-container mt-4">
           <textarea
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={(e) => debouncedSetInputText(e.target.value)}
             placeholder="Вставьте текст для обработки из Word или другого редактора...
 
 Вы можете применить к этому тексту все инструменты анализа:"
@@ -286,6 +343,30 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
             </label>
           </div>
 
+          {fileErrors.length > 0 && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg" role="alert" aria-live="polite">
+              <div className="flex items-start gap-2">
+                <span className="text-red-600">⚠️</span>
+                <div className="flex-1">
+                  <div className="font-medium text-red-800 text-sm">Ошибки при загрузке файлов</div>
+                  <ul className="mt-2 space-y-1">
+                    {fileErrors.map((error, idx) => (
+                      <li key={idx} className="text-xs text-red-700">{error}</li>
+                    ))}
+                  </ul>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFileErrors([])}
+                  className="text-red-600 hover:text-red-700 text-sm"
+                  aria-label="Закрыть сообщения об ошибках"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+
           {uploadedFiles.length > 0 && (
             <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
               <div className="flex items-center justify-between mb-2">
@@ -326,7 +407,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
                 <input
                   type="text"
                   value={fileQuestion}
-                  onChange={(e) => setFileQuestion(e.target.value)}
+                  onChange={(e) => debouncedSetFileQuestion(e.target.value)}
                   placeholder="Например: Какие основные выводы в этих документах?"
                   className="flex-1 input-field"
                   onKeyPress={(e) => {

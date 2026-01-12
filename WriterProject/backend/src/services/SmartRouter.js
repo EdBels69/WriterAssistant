@@ -10,17 +10,66 @@ class SmartRouter {
     this.openRouterApiKey = process.env.OPENROUTER_API_KEY
     this.deepseekModel = 'deepseek/deepseek-r1-0528:free'
     this.qwenModel = 'qwen/qwen-2.5-coder-7b-instruct:free'
+    this.freeOpenRouterModels = [
+      { id: 'google/gemma-2-9b-it:free', name: 'Gemma 2', priority: 1 },
+      { id: 'mistralai/mistral-7b-instruct:free', name: 'Mistral 7B', priority: 2 },
+      { id: 'meta-llama/llama-3.2-3b-instruct:free', name: 'Llama 3.2', priority: 3 }
+    ]
     this.chunkingService = new TextChunkingService()
     this.balanceCache = {
       glm: null,
       lastCheck: 0,
       deepseek: null,
-      qwen: null
+      qwen: null,
+      freeModels: {}
+    }
+    this.responseCache = new Map()
+    this.cacheTTL = 300000
+    this.cacheEnabled = true
+  }
+
+  simpleHash(str) {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i)
+      hash |= 0
+    }
+    return Math.abs(hash).toString(36)
+  }
+
+  getCacheKey(taskType, prompt, options = {}) {
+    const hash = this.simpleHash(prompt.slice(0, 200))
+    return `${taskType}:${hash}:${options.temperature || 0.7}`
+  }
+
+  getCachedResponse(key) {
+    if (!this.cacheEnabled) return null
+    const cached = this.responseCache.get(key)
+    if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+      console.log(`[Cache HIT] ${key}`)
+      return cached.response
+    }
+    return null
+  }
+
+  setCachedResponse(key, response) {
+    if (!this.cacheEnabled) return
+    this.responseCache.set(key, {
+      response,
+      timestamp: Date.now()
+    })
+    if (this.responseCache.size > 100) {
+      const firstKey = this.responseCache.keys().next().value
+      this.responseCache.delete(firstKey)
     }
   }
 
+  clearCache() {
+    this.responseCache.clear()
+  }
+
   async checkGLMBalance() {
-    const cacheTimeout = 60000
+    const cacheTimeout = 300000
     if (this.balanceCache.glm && Date.now() - this.balanceCache.lastCheck < cacheTimeout) {
       return this.balanceCache.glm
     }
@@ -83,6 +132,94 @@ class SmartRouter {
     }
   }
 
+  async checkFreeOpenRouterModelAvailability() {
+    if (!this.openRouterApiKey) return false
+    
+    const cacheTimeout = 300000
+    if (this.balanceCache.freeModels.lastCheck && Date.now() - this.balanceCache.freeModels.lastCheck < cacheTimeout) {
+      return this.balanceCache.freeModels.available || []
+    }
+
+    try {
+      const response = await axios.get('https://openrouter.ai/api/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${this.openRouterApiKey}`
+        }
+      })
+
+      const availableModels = []
+      if (response.status === 200) {
+        const models = response.data.data || []
+        
+        for (const freeModel of this.freeOpenRouterModels) {
+          if (models.some(m => m.id === freeModel.id)) {
+            availableModels.push(freeModel)
+          }
+        }
+
+        this.balanceCache.freeModels = {
+          lastCheck: Date.now(),
+          available: availableModels
+        }
+
+        return availableModels
+      }
+    } catch (error) {
+      console.error('Free OpenRouter models check failed:', error)
+    }
+
+    this.balanceCache.freeModels = {
+      lastCheck: Date.now(),
+      available: []
+    }
+    return []
+  }
+
+  async executeFreeOpenRouterRequest(prompt, options, modelId) {
+    const { temperature = 0.7, maxTokens = 4096, systemPrompt } = options
+    
+    try {
+      const messages = []
+      
+      if (systemPrompt) {
+        messages.push({ role: 'system', content: systemPrompt })
+      } else {
+        messages.push({ role: 'system', content: 'You are an expert academic researcher and scientist. Provide detailed, well-structured, and scientifically accurate responses.' })
+      }
+      
+      messages.push({ role: 'user', content: prompt })
+
+      const response = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        {
+          model: modelId,
+          messages,
+          temperature,
+          max_tokens: maxTokens
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.openRouterApiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.APP_URL || 'http://localhost:3001',
+            'X-Title': 'ScientificWriter AI'
+          }
+        }
+      )
+
+      return {
+        success: true,
+        content: response.data.choices[0].message.content,
+        provider: 'openrouter',
+        model: modelId,
+        usage: response.data.usage
+      }
+    } catch (error) {
+      console.error(`Free OpenRouter model ${modelId} request failed:`, error.response?.data || error.message)
+      throw new Error(`Free OpenRouter API error: ${error.message}`)
+    }
+  }
+
   getTaskType(task) {
     const taskPatterns = {
       hypothesis: ['hypothesis', 'гипотеза', 'research', 'исследование'],
@@ -105,36 +242,58 @@ class SmartRouter {
 
   async routeRequest(task, prompt, options = {}) {
     const taskType = this.getTaskType(task)
+    const cacheKey = this.getCacheKey(taskType, prompt, options)
+    
+    const cachedResponse = this.getCachedResponse(cacheKey)
+    if (cachedResponse && !options.bypassCache) {
+      return { ...cachedResponse, fromCache: true }
+    }
+    
     const deepseekAvailable = await this.checkDeepSeekAvailability()
     const qwenAvailable = await this.checkQwenAvailability()
+    const freeOpenRouterModels = await this.checkFreeOpenRouterModelAvailability()
     
-    const routingDecision = this.makeRoutingDecision(taskType, deepseekAvailable, qwenAvailable, options)
+    const routingDecision = this.makeRoutingDecision(taskType, deepseekAvailable, qwenAvailable, freeOpenRouterModels, options)
     
-    console.log(`[SmartRouter] Routing task "${task}" to:`, routingDecision.provider)
-    console.log(`[SmartRouter] Task type: ${taskType}, DeepSeek available: ${deepseekAvailable}, Qwen available: ${qwenAvailable}`)
+    let response
     
     switch (routingDecision.provider) {
       case 'glm-primary':
-        return await this.executeGLMRequest(prompt, options, false)
+        response = await this.executeGLMRequest(prompt, options, false)
+        break
       
       case 'glm-secondary':
-        return await this.executeGLMRequest(prompt, options, true)
+        response = await this.executeGLMRequest(prompt, options, true)
+        break
       
       case 'deepseek':
-        return await this.executeDeepSeekRequest(prompt, options)
+        response = await this.executeDeepSeekRequest(prompt, options)
+        break
       
       case 'qwen':
-        return await this.executeQwenRequest(prompt, options)
+        response = await this.executeQwenRequest(prompt, options)
+        break
+      
+      case 'openrouter-free':
+        response = await this.executeFreeOpenRouterRequest(prompt, options, routingDecision.modelId)
+        break
       
       case 'coding-api':
-        return await this.executeCodingAPIRequest(prompt, options)
+        response = await this.executeCodingAPIRequest(prompt, options)
+        break
       
       default:
         throw new Error('No available provider for this request')
     }
+    
+    if (!options.bypassCache) {
+      this.setCachedResponse(cacheKey, response)
+    }
+    
+    return response
   }
 
-  makeRoutingDecision(taskType, deepseekAvailable, qwenAvailable, options) {
+  makeRoutingDecision(taskType, deepseekAvailable, qwenAvailable, freeOpenRouterModels, options) {
     const { forceProvider, priority = 'balanced' } = options
     
     if (forceProvider) {
@@ -143,34 +302,34 @@ class SmartRouter {
 
     const priorities = {
       high: {
-        'hypothesis': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'structure': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'literature': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'methodology': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'analysis': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'code': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'style': ['glm-primary', 'qwen', 'deepseek', 'glm-secondary'],
-        'general': ['glm-primary', 'deepseek', 'glm-secondary']
+        'hypothesis': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'structure': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'literature': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'methodology': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'analysis': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'code': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'style': ['glm-primary', 'qwen', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'general': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free']
       },
       balanced: {
-        'hypothesis': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'structure': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'literature': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'methodology': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'analysis': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'code': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'style': ['glm-primary', 'qwen', 'deepseek', 'glm-secondary'],
-        'general': ['glm-primary', 'deepseek', 'glm-secondary']
+        'hypothesis': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'structure': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'literature': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'methodology': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'analysis': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'code': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'style': ['glm-primary', 'qwen', 'deepseek', 'glm-secondary', 'openrouter-free'],
+        'general': ['glm-primary', 'deepseek', 'glm-secondary', 'openrouter-free']
       },
       cost: {
-        'hypothesis': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'structure': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'literature': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'methodology': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'analysis': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'code': ['glm-primary', 'deepseek', 'glm-secondary'],
-        'style': ['qwen', 'glm-primary', 'deepseek', 'glm-secondary'],
-        'general': ['glm-primary', 'deepseek', 'glm-secondary']
+        'hypothesis': ['openrouter-free', 'glm-primary', 'deepseek', 'glm-secondary'],
+        'structure': ['openrouter-free', 'glm-primary', 'deepseek', 'glm-secondary'],
+        'literature': ['openrouter-free', 'glm-primary', 'deepseek', 'glm-secondary'],
+        'methodology': ['openrouter-free', 'glm-primary', 'deepseek', 'glm-secondary'],
+        'analysis': ['openrouter-free', 'glm-primary', 'deepseek', 'glm-secondary'],
+        'code': ['openrouter-free', 'glm-primary', 'deepseek', 'glm-secondary'],
+        'style': ['qwen', 'openrouter-free', 'glm-primary', 'deepseek', 'glm-secondary'],
+        'general': ['openrouter-free', 'glm-primary', 'deepseek', 'glm-secondary']
       }
     }
 
@@ -188,6 +347,9 @@ class SmartRouter {
       }
       if (provider === 'qwen' && qwenAvailable) {
         return { provider }
+      }
+      if (provider === 'openrouter-free' && freeOpenRouterModels.length > 0) {
+        return { provider: 'openrouter-free', modelId: freeOpenRouterModels[0].id }
       }
     }
 
@@ -435,11 +597,8 @@ ${prompt}
     const estimatedTokens = this.estimateTokens(text)
     
     if (estimatedTokens <= maxTokens) {
-      console.log(`[SmartRouter] Text fits in single request (${estimatedTokens} tokens)`)
       return await this.routeRequest(task, text, options)
     }
-    
-    console.log(`[SmartRouter] Text too large (${estimatedTokens} tokens), using chunking`)
     
     const processFunction = async (chunk, meta) => {
       let systemPrompt = options.systemPrompt
@@ -461,7 +620,6 @@ ${prompt}
       {
         maxTokens,
         onProgress: (progress) => {
-          console.log(`[SmartRouter] Processing chunk ${progress.current}/${progress.total} (${progress.percentage}%)`)
           if (onProgress) onProgress(progress)
         }
       }

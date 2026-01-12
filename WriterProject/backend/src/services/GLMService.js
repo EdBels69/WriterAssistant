@@ -1,4 +1,5 @@
 import axios from 'axios'
+import https from 'https'
 
 class GLMService {
   constructor(apiKey) {
@@ -6,9 +7,100 @@ class GLMService {
     this.baseURL = 'https://api.z.ai/api/paas/v4'
     this.codingURL = 'https://api.z.ai/api/coding/paas/v4'
     this.model = 'glm-4.7'
+    this.maxRetries = 5
+    this.baseDelay = 1000
+    this.maxDelay = 30000
+
+    this.httpAgent = new https.Agent({
+      keepAlive: true,
+      maxSockets: 10,
+      maxFreeSockets: 5,
+      timeout: 60000
+    })
+
+    this.client = axios.create({
+      httpsAgent: this.httpAgent,
+      timeout: 90000,
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    this.pendingRequests = new Map()
+  }
+
+  async sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  calculateDelay(attempt) {
+    const exponentialDelay = Math.min(
+      this.baseDelay * Math.pow(2, attempt),
+      this.maxDelay
+    )
+    const jitter = Math.random() * exponentialDelay * 0.1
+    return Math.floor(exponentialDelay + jitter)
+  }
+
+  isRetryableError(error) {
+    const status = error.response?.status
+    const retryableStatuses = [429, 502, 503, 504, 408]
+    const isNetworkError = !error.response && error.code !== 'ECONNABORTED'
+    return retryableStatuses.includes(status) || isNetworkError
+  }
+
+  async makeRequest(url, requestBody, options = {}) {
+    const { timeout = 90000, retries = this.maxRetries } = options
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await this.client.post(url, requestBody, {
+          timeout
+        })
+
+        return response
+      } catch (error) {
+        const isLastAttempt = attempt === retries
+
+        if (isLastAttempt || !this.isRetryableError(error)) {
+          throw error
+        }
+
+        const delay = this.calculateDelay(attempt)
+        const status = error.response?.status || 'network'
+
+        if (attempt > 0) {
+          console.warn(`GLM API retry ${attempt}/${retries} after ${delay}ms (status: ${status})`)
+        }
+
+        await this.sleep(delay)
+      }
+    }
+  }
+
+  getRequestKey(prompt, options) {
+    return `${prompt.slice(0, 100)}:${options.temperature || 0.7}`
   }
 
   async generateCompletion(prompt, options = {}) {
+    const requestKey = this.getRequestKey(prompt, options)
+
+    if (this.pendingRequests.has(requestKey)) {
+      console.log('[Dedup] Waiting for existing request')
+      return this.pendingRequests.get(requestKey)
+    }
+
+    const requestPromise = this._executeCompletion(prompt, options)
+      .finally(() => {
+        this.pendingRequests.delete(requestKey)
+      })
+
+    this.pendingRequests.set(requestKey, requestPromise)
+    return requestPromise
+  }
+
+  async _executeCompletion(prompt, options = {}) {
     const {
       temperature = 0.7,
       maxTokens = 2000,
@@ -40,13 +132,7 @@ class GLMService {
     const url = `${this.codingURL}/chat/completions`
 
     try {
-      const response = await axios.post(url, requestBody, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 90000
-      })
+      const response = await this.makeRequest(url, requestBody, { timeout: 90000 })
 
       return {
         success: true,
@@ -55,10 +141,17 @@ class GLMService {
         usage: response.data.usage
       }
     } catch (error) {
-      console.error('GLM API Error:', error.response?.data || error.message)
+      const errorMessage = error.response?.data?.error?.message || error.message
+      const statusCode = error.response?.status || 'network'
+
+      if (error.response?.status === 429) {
+        console.warn(`GLM API rate limit exceeded after ${this.maxRetries} retries`)
+      }
+
       return {
         success: false,
-        error: error.response?.data?.error?.message || error.message
+        error: errorMessage,
+        statusCode
       }
     }
   }
