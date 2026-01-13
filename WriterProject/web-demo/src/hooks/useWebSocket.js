@@ -1,5 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 
+const deriveWsBaseUrl = (apiBaseUrl) => {
+  if (!apiBaseUrl || typeof apiBaseUrl !== 'string') return null
+  const normalized = apiBaseUrl.replace(/\/$/, '')
+  const wsBase = normalized.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://')
+  if (wsBase.startsWith('ws://') || wsBase.startsWith('wss://')) return wsBase
+  return null
+}
+
 const useWebSocket = (userId, onMessage) => {
   const [isConnected, setIsConnected] = useState(false)
   const [connectionState, setConnectionState] = useState('disconnected')
@@ -257,7 +265,8 @@ const useWebSocket = (userId, onMessage) => {
     isReconnectingRef.current = true
     connectionAttemptRef.current++
     setConnectionState('connecting')
-    const wsUrl = `${import.meta.env.VITE_WS_URL}?userId=${userId}`
+    const wsBaseUrl = import.meta.env.VITE_WS_URL || deriveWsBaseUrl(import.meta.env.VITE_API_URL) || 'ws://localhost:5001'
+    const wsUrl = `${wsBaseUrl}?userId=${userId}`
 
     const connectStartTime = Date.now()
     

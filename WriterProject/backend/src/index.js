@@ -30,6 +30,10 @@ const PORT = process.env.PORT || 5000
 const isTestEnv = process.env.NODE_ENV === 'test' || !!process.env.VITEST
 const noLimiter = (req, res, next) => next()
 
+if (process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1)
+}
+
 const apiRateLimiter = isTestEnv ? noLimiter : apiLimiter
 const aiRateLimiter = isTestEnv ? noLimiter : aiLimiter
 const uploadRateLimiter = isTestEnv ? noLimiter : uploadLimiter
@@ -40,7 +44,7 @@ app.use(cors({
 }))
 app.use(express.json())
 
-const db = new Database(join(__dirname, '../data/writer-assistant.db'))
+const db = new Database()
 const glmService = new GLMService(process.env.GLM_API_KEY)
 const exportService = new ExportService()
 const wsServer = new WebSocketServer()
@@ -76,7 +80,7 @@ async function startServer() {
   try {
     await db.init()
     
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`WriterAssistant Backend running on port ${PORT}`)
       console.log(`GLM-4.7 Integration: ${process.env.GLM_API_KEY ? 'Configured' : 'Not configured'}`)
     })
