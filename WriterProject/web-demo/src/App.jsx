@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy, useCallback, useState } from 'react'
 import useWebSocket from './hooks/useWebSocket'
 import useAppStore from './stores/appStore'
-import useSettings from './hooks/useSettings'
+import { useSettings } from './hooks/useSettings'
 import usePipelineStore from './stores/pipelineStore'
 import Header from './components/layout/Header'
 import Navigation from './components/layout/Navigation'
@@ -38,7 +38,11 @@ function App() {
     inputText,
     setInputText,
     selectedTemplate,
-    setSelectedTemplate
+    setSelectedTemplate,
+    activeDropdown,
+    setActiveDropdown,
+    activeToolScreen,
+    setActiveToolScreen
   } = useAppStore()
 
   const { activePipeline } = usePipelineStore()
@@ -55,15 +59,29 @@ function App() {
 
   const handleTemplateSelect = useCallback((pipeline) => {
     setSelectedTemplate(pipeline)
+    // Navigate to tools page when template is selected
+    window.location.hash = '#/tools'
   }, [setSelectedTemplate])
 
   const handleStepClick = useCallback((step) => {
-    console.log('Step clicked:', step)
-  }, [])
+    // Store step data in app state or navigate to step detail
+    setAnalysisResults(prev => [...prev, { 
+      id: step.id, 
+      type: 'step', 
+      data: step,
+      timestamp: new Date().toISOString()
+    }])
+  }, [setAnalysisResults])
 
   const handleAgentClick = useCallback((agent) => {
-    console.log('Agent clicked:', agent)
-  }, [])
+    // Store agent data in app state or navigate to agent detail
+    setAnalysisResults(prev => [...prev, { 
+      id: agent.id, 
+      type: 'agent', 
+      data: agent,
+      timestamp: new Date().toISOString()
+    }])
+  }, [setAnalysisResults])
 
   const handleComponentError = useCallback((componentName) => {
     setComponentErrors(prev => ({ ...prev, [componentName]: true }))
@@ -74,22 +92,34 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="academic-app">
       <Header />
 
-      <div className="flex">
-        <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-        <main className="flex-1 p-6">
+      <div className="academic-app-body">
+        <main className="academic-main-content" role="main">
           <Suspense fallback={<LoadingState />}>
             <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/projects/new" element={<ProjectsPage />} />
-              <Route path="/projects/:projectId" element={<ProjectsPage />} />
-              <Route path="/tools" element={<ToolsPage />} />
-              <Route path="/chat" element={<ChatPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="/*" element={
+                <>
+                  <Navigation 
+                    activeTab={activeTab} 
+                    activeDropdown={activeDropdown}
+                    activeToolScreen={activeToolScreen}
+                    setActiveTab={setActiveTab}
+                    setActiveDropdown={setActiveDropdown}
+                    setActiveToolScreen={setActiveToolScreen}
+                  />
+                  <Routes>
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/projects" element={<ProjectsPage />} />
+                    <Route path="/projects/new" element={<ProjectsPage />} />
+                    <Route path="/projects/:projectId" element={<ProjectsPage />} />
+                    <Route path="/tools" element={<ToolsPage />} />
+                    <Route path="/chat" element={<ChatPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </>
+              } />
             </Routes>
           </Suspense>
         </main>
@@ -165,6 +195,39 @@ function App() {
           </ErrorBoundary>
         )}
       </Suspense>
+
+      <style jsx>{`
+        .academic-app {
+          min-height: 100vh;
+          background-color: var(--academic-paper);
+          color: var(--academic-text-primary);
+        }
+
+        .academic-app-body {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .academic-main-content {
+          flex: 1;
+          padding: var(--academic-space-xl) var(--academic-space-md);
+          max-width: var(--academic-container-max-width);
+          margin: 0 auto;
+          width: 100%;
+        }
+
+        @media (max-width: 768px) {
+          .academic-main-content {
+            padding: var(--academic-space-lg) var(--academic-space-sm);
+          }
+        }
+
+        @media (max-width: 480px) {
+          .academic-main-content {
+            padding: var(--academic-space-md) var(--academic-space-xs);
+          }
+        }
+      `}</style>
     </div>
   )
 }

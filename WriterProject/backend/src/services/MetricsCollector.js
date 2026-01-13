@@ -201,8 +201,22 @@ class MetricsCollector {
   percentile(arr, p) {
     if (arr.length === 0) return 0
     const sorted = arr.slice().sort((a, b) => a - b)
-    const index = Math.ceil(sorted.length * p / 100) - 1
-    return sorted[Math.max(0, index)]
+
+    if (p <= 0) return sorted[0]
+    if (p >= 100) return sorted[sorted.length - 1]
+
+    const n = sorted.length
+    const rawRank = (p / 100) * (n - 1)
+    const rank = Math.round(rawRank * 2) / 2
+    const lowerIndex = Math.floor(rank)
+    const upperIndex = Math.ceil(rank)
+
+    if (lowerIndex === upperIndex) return sorted[lowerIndex]
+
+    const lower = sorted[lowerIndex]
+    const upper = sorted[upperIndex]
+    const fraction = rank - lowerIndex
+    return lower + (upper - lower) * fraction
   }
 
   getReport() {
@@ -227,4 +241,4 @@ class MetricsCollector {
   }
 }
 
-module.exports = MetricsCollector
+export default MetricsCollector

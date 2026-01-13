@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware'
 const useContextStore = create(
   persist(
     (set, get) => ({
+      contexts: {},
       researchContext: {
         researchTopic: '',
         hypothesis: '',
@@ -23,6 +24,19 @@ const useContextStore = create(
       literatureReviews: [],
       statisticalAnalyses: [],
       styleImprovements: [],
+
+      updateContext: (stepId, patch) => {
+        if (!stepId) return
+        set((state) => ({
+          contexts: {
+            ...state.contexts,
+            [stepId]: {
+              ...(state.contexts?.[stepId] || {}),
+              ...(patch || {})
+            }
+          }
+        }))
+      },
 
       updateResearchContext: (key, value) => {
         set((state) => ({
@@ -87,8 +101,18 @@ const useContextStore = create(
         }))
       },
 
-      clearContext: () => {
+      clearContext: (stepId) => {
+        if (stepId) {
+          set((state) => {
+            const next = { ...(state.contexts || {}) }
+            delete next[stepId]
+            return { contexts: next }
+          })
+          return
+        }
+
         set({
+          contexts: {},
           researchContext: {
             researchTopic: '',
             hypothesis: '',
@@ -147,6 +171,7 @@ const useContextStore = create(
     {
       name: 'context-storage',
       partialize: (state) => ({
+        contexts: state.contexts,
         researchContext: state.researchContext,
         uploadedFiles: state.uploadedFiles,
         extractedReferences: state.extractedReferences,

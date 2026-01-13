@@ -3,13 +3,13 @@ class CircuitBreaker {
     this.failureThreshold = options.failureThreshold || 5
     this.resetTimeout = options.resetTimeout || 60000
     this.halfOpenMaxCalls = options.halfOpenMaxCalls || 3
-    
+
     this.states = {
       closed: 'CLOSED',
       open: 'OPEN',
       halfOpen: 'HALF_OPEN'
     }
-    
+
     this.services = new Map()
   }
 
@@ -29,45 +29,45 @@ class CircuitBreaker {
 
   recordSuccess(serviceName) {
     const service = this.getService(serviceName)
-    
+
     if (service.state === this.states.halfOpen) {
       service.successCount++
       service.halfOpenCalls++
-      
+
       if (service.successCount >= this.halfOpenMaxCalls) {
         this.reset(service)
       }
     } else if (service.state === this.states.closed) {
       service.failureCount = 0
     }
-    
+
     service.history.push({
       timestamp: new Date().toISOString(),
       status: 'success'
     })
-    
+
     this.trimHistory(service)
   }
 
   recordFailure(serviceName, error) {
     const service = this.getService(serviceName)
-    
+
     service.failureCount++
     service.lastFailureTime = Date.now()
-    
+
     if (service.state === this.states.halfOpen) {
       this.open(service)
-    } else if (service.state === this.states.closed && 
-               service.failureCount >= this.failureThreshold) {
+    } else if (service.state === this.states.closed &&
+      service.failureCount >= this.failureThreshold) {
       this.open(service)
     }
-    
+
     service.history.push({
       timestamp: new Date().toISOString(),
       status: 'failure',
       error: error?.message || 'Unknown error'
     })
-    
+
     this.trimHistory(service)
   }
 
@@ -100,7 +100,7 @@ class CircuitBreaker {
 
   async execute(serviceName, fn, fallback = null) {
     const service = this.getService(serviceName)
-    
+
     if (service.state === this.states.open) {
       if (this.shouldAttemptReset(service)) {
         this.halfOpen(service)
@@ -115,14 +115,14 @@ class CircuitBreaker {
         )
       }
     }
-    
+
     try {
       const result = await fn()
       this.recordSuccess(serviceName)
       return result
     } catch (error) {
       this.recordFailure(serviceName, error)
-      
+
       if (fallback) {
         try {
           return fallback()
@@ -135,7 +135,7 @@ class CircuitBreaker {
           )
         }
       }
-      
+
       throw error
     }
   }
@@ -208,11 +208,11 @@ class CircuitBreaker {
       halfOpen: 0,
       services: this.getAllStates()
     }
-    
+
     Object.values(report.services).forEach(service => {
       report[service.state.toLowerCase()]++
     })
-    
+
     return report
   }
 }
@@ -236,4 +236,5 @@ class CircuitBreakerError extends Error {
   }
 }
 
-module.exports = { CircuitBreaker, CircuitBreakerOpenError, CircuitBreakerError }
+export { CircuitBreaker, CircuitBreakerOpenError, CircuitBreakerError }
+export default CircuitBreaker

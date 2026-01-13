@@ -1,5 +1,4 @@
 import { Sparkles, Brain, Trash2, FileText } from 'lucide-react'
-import { debounce } from '../utils/debounce'
 
 export default function Chat({
   isChatOpen,
@@ -12,8 +11,6 @@ export default function Chat({
   handleFileUpload,
   setIsChatOpen
 }) {
-  const debouncedSetCurrentInput = debounce(setCurrentInput, 300)
-
   if (!isChatOpen) return null
 
   return (
@@ -113,7 +110,7 @@ export default function Chat({
           <input
             type="text"
             value={currentInput}
-            onChange={(e) => debouncedSetCurrentInput(e.target.value)}
+            onChange={(e) => setCurrentInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="Напишите сообщение..."
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"

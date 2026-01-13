@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 const useAppStore = create(
   persist(
-    (set, get) => ({
+    (set) => ({
       userId: localStorage.getItem('userId') || 'demo-user',
       activeTab: 'dashboard',
       activeToolScreen: null,
@@ -111,8 +111,11 @@ const useAppStore = create(
       }
     }),
     {
-      name: 'sw-app-storage',
+      name: 'app-store',
       partialize: (state) => ({
+        activeTab: state.activeTab,
+        chatMessages: state.chatMessages,
+        currentInput: state.currentInput,
         settings: state.settings,
         chatMode: state.chatMode,
         inputMode: state.inputMode,

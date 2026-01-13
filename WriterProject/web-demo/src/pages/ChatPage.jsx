@@ -1,11 +1,10 @@
-import { memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, MessageSquare } from 'lucide-react'
 import Chat from '../components/Chat'
-import useChatHandlers from '../hooks/useChatHandlers'
-import useSettings from '../hooks/useSettings'
+import { useChatHandlers } from '../hooks/useChatHandlers'
+import { useSettings } from '../hooks/useSettings'
 
-function ChatPage() {
+export default function ChatPage() {
   const navigate = useNavigate()
 
   const {
@@ -54,5 +53,3 @@ function ChatPage() {
     </div>
   )
 }
-
-export default memo(ChatPage)

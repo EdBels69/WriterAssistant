@@ -233,15 +233,15 @@ router.get('/status', (req, res) => {
     const results = selfTestRunner.getTestResults()
     
     const status = {
-      hasResults: !!(results && results.summary.total > 0),
-      lastRun: results ? results.timestamp : null,
-      totalTests: results ? results.summary.total : 0,
-      passedTests: results ? results.summary.passed : 0,
-      failedTests: results ? results.summary.failed : 0,
-      passRate: results && results.summary.total > 0 
+      hasResults: !!(results?.summary?.total && results.summary.total > 0),
+      lastRun: results?.timestamp || null,
+      totalTests: results?.summary?.total || 0,
+      passedTests: results?.summary?.passed || 0,
+      failedTests: results?.summary?.failed || 0,
+      passRate: results?.summary?.total && results.summary.total > 0 
         ? ((results.summary.passed / results.summary.total) * 100).toFixed(2) + '%' 
         : 'N/A',
-      criticalFailures: results ? results.criticalFailures.length : 0
+      criticalFailures: results?.criticalFailures?.length || 0
     }
     
     res.json({

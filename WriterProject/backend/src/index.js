@@ -17,6 +17,8 @@ import DocumentController from './controllers/DocumentController.js'
 import WebSocketServer from './websocket/WebSocketServer.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
 import { aiLimiter, apiLimiter, uploadLimiter } from './middleware/rateLimiter.js'
+import metricsRouter from './routes/metrics.js'
+import selfTestRouter from './routes/self-test.js'
 
 dotenv.config()
 
@@ -25,9 +27,15 @@ const __dirname = dirname(__filename)
 
 const app = express()
 const PORT = process.env.PORT || 5000
+const isTestEnv = process.env.NODE_ENV === 'test' || !!process.env.VITEST
+const noLimiter = (req, res, next) => next()
+
+const apiRateLimiter = isTestEnv ? noLimiter : apiLimiter
+const aiRateLimiter = isTestEnv ? noLimiter : aiLimiter
+const uploadRateLimiter = isTestEnv ? noLimiter : uploadLimiter
 
 app.use(cors({
-  origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3001'],
+  origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3001'],
   credentials: true
 }))
 app.use(express.json())
@@ -46,16 +54,16 @@ const commentsController = new CommentsController(db)
 const uploadController = new UploadController()
 const documentController = new DocumentController()
 
-app.use('/api/projects', apiLimiter, projectController.router)
-app.use('/api/chat', apiLimiter, chatController.router)
-app.use('/api/statistics', apiLimiter, statisticsController.router)
-app.use('/api/ai', aiLimiter, aiController.router)
-app.use('/api/export', apiLimiter, exportController.router)
-app.use('/api/comments', apiLimiter, commentsController.router)
-app.use('/api/upload', uploadLimiter, uploadController.router)
-app.use('/api/documents', apiLimiter, documentController.router)
-app.use('/api/metrics', apiLimiter, metricsRouter)
-app.use('/api/self-test', apiLimiter, selfTestRouter)
+app.use('/api/projects', apiRateLimiter, projectController.router)
+app.use('/api/chat', apiRateLimiter, chatController.router)
+app.use('/api/statistics', apiRateLimiter, statisticsController.router)
+app.use('/api/ai', aiRateLimiter, aiController.router)
+app.use('/api/export', apiRateLimiter, exportController.router)
+app.use('/api/comments', apiRateLimiter, commentsController.router)
+app.use('/api/upload', uploadRateLimiter, uploadController.router)
+app.use('/api/documents', apiRateLimiter, documentController.router)
+app.use('/api/metrics', apiRateLimiter, metricsRouter)
+app.use('/api/self-test', apiRateLimiter, selfTestRouter)
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
@@ -80,6 +88,10 @@ async function startServer() {
   }
 }
 
-startServer()
+const isMainModule = process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href
+
+if (isMainModule) {
+  startServer()
+}
 
 export default app

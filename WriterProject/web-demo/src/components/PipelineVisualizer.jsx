@@ -14,10 +14,15 @@ import {
   FileText,
   BarChart3,
   BookOpen,
-  Edit3
+  Edit3,
+  RefreshCw,
+  XCircle,
+  WifiOff,
+  AlertTriangle
 } from 'lucide-react'
 import usePipelineStore from '../stores/pipelineStore'
 import useContextStore from '../stores/contextStore'
+import useWebSocket from '../hooks/useWebSocket'
 import { aiAPI } from '../api/ai'
 
 const stepIcons = {
@@ -42,11 +47,31 @@ const stepColors = {
 const PipelineVisualizer = ({ pipelineId, onStepClick }) => {
   const { pipelines, activePipeline, setActivePipeline, updateStepStatus, resetPipeline, deletePipeline, isPaused, pausePipeline, resumePipeline } = usePipelineStore()
   const { getContextForStep } = useContextStore()
+  const { connectionState, setPausePipeline, getCircuitBreakerState } = useWebSocket()
   const [isExecuting, setIsExecuting] = useState(false)
   const [currentExecutingStep, setCurrentExecutingStep] = useState(null)
+  const [isErrorRecoveryDismissed, setIsErrorRecoveryDismissed] = useState(false)
+  const [recoveryAttemptCount, setRecoveryAttemptCount] = useState(0)
 
   const pipeline = pipelines.find((p) => p.id === pipelineId)
   if (!pipeline) return null
+
+  const hasErrorSteps = pipeline.steps.some((s) => s.status === 'error')
+  const hasNetworkIssue = connectionState === 'circuit_open' || connectionState === 'disconnected'
+  const errorRecoveryMode = hasNetworkIssue
+    ? 'network'
+    : (hasErrorSteps || recoveryAttemptCount > 0)
+        ? 'step_error'
+        : null
+  const shouldShowErrorRecovery = Boolean(errorRecoveryMode) && !isErrorRecoveryDismissed
+  const circuitBreakerState = getCircuitBreakerState()
+
+  useEffect(() => {
+    if (!hasErrorSteps && !hasNetworkIssue && !isExecuting) {
+      setIsErrorRecoveryDismissed(false)
+      setRecoveryAttemptCount(0)
+    }
+  }, [hasErrorSteps, hasNetworkIssue, isExecuting])
 
   const handleStartPipeline = async () => {
     if (isExecuting) return
@@ -104,9 +129,7 @@ const PipelineVisualizer = ({ pipelineId, onStepClick }) => {
 
   const handleReset = () => {
     if (confirm('Сбросить прогресс pipeline? Все результаты будут удалены.')) {
-      resetPipeline(pipelineId)
-      setIsExecuting(false)
-      setCurrentExecutingStep(null)
+      handleResetPipeline()
     }
   }
 
@@ -117,6 +140,53 @@ const PipelineVisualizer = ({ pipelineId, onStepClick }) => {
         setActivePipeline(null)
       }
     }
+  }
+
+  const handleRecoveryAction = async (action) => {
+    setRecoveryAttemptCount(prev => prev + 1)
+
+    switch (action) {
+      case 'retry_step':
+        const errorStep = pipeline.steps.find((s) => s.status === 'error')
+        if (errorStep) {
+          updateStepStatus(pipelineId, errorStep.id, 'pending')
+          await handleStartPipeline()
+        }
+        break
+
+      case 'skip_step':
+        const pendingErrorStep = pipeline.steps.find((s) => s.status === 'error')
+        if (pendingErrorStep) {
+          updateStepStatus(pipelineId, pendingErrorStep.id, 'completed')
+          await handleStartPipeline()
+        }
+        break
+
+      case 'retry_all':
+        pipeline.steps.forEach((step) => {
+          if (step.status === 'error') {
+            updateStepStatus(pipelineId, step.id, 'pending')
+          }
+        })
+        await handleStartPipeline()
+        break
+
+      case 'check_connection':
+        setIsErrorRecoveryDismissed(true)
+        break
+
+      case 'wait_connection':
+        setIsErrorRecoveryDismissed(true)
+        break
+    }
+  }
+
+  const handleResetPipeline = () => {
+    resetPipeline(pipelineId)
+    setIsExecuting(false)
+    setCurrentExecutingStep(null)
+    setIsErrorRecoveryDismissed(false)
+    setRecoveryAttemptCount(0)
   }
 
   const getStepStatus = (step) => {
@@ -237,15 +307,147 @@ const PipelineVisualizer = ({ pipelineId, onStepClick }) => {
         })}
       </div>
 
-      {pipeline.steps.some((s) => s.status === 'error') && (
-        <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center gap-2 text-red-700 font-medium mb-2">
-            <AlertCircle size={20} />
-            Ошибка выполнения
+      {shouldShowErrorRecovery && (
+        <div className="mt-6 p-6 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl shadow-lg" role="alert" aria-live="polite">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              {errorRecoveryMode === 'network' ? (
+                <div className="p-3 bg-amber-100 rounded-full">
+                  <WifiOff size={24} className="text-amber-600" />
+                </div>
+              ) : (
+                <div className="p-3 bg-red-100 rounded-full">
+                  <XCircle size={24} className="text-red-600" />
+                </div>
+              )}
+            </div>
+            
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-bold text-gray-900 text-lg">
+                  {errorRecoveryMode === 'network' ? 'Проблема с соединением' : 'Ошибка выполнения pipeline'}
+                </h4>
+                <button
+                  onClick={() => {
+                    setIsErrorRecoveryDismissed(true)
+                    setRecoveryAttemptCount(0)
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Закрыть панель восстановления"
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
+              
+              {errorRecoveryMode === 'network' ? (
+                <div>
+                  <p className="text-sm text-gray-700 mb-4">
+                    Потеряно соединение с сервером. Circuit breaker активирован для предотвращения каскадных ошибок.
+                  </p>
+                  
+                  {circuitBreakerState && (
+                    <div className="mb-4 p-3 bg-white rounded-lg border border-amber-200">
+                      <div className="flex items-center gap-2 text-sm">
+                        <AlertTriangle size={16} className="text-amber-600" />
+                        <span className="font-medium">Статус circuit breaker:</span>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                          {circuitBreakerState.state === 'open' ? 'Открыт' : 
+                           circuitBreakerState.state === 'half_open' ? 'Полуоткрыт' : 'Закрыт'}
+                        </span>
+                      </div>
+                      {circuitBreakerState.failureCount > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Количество сбоев: {circuitBreakerState.failureCount}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleRecoveryAction('check_connection')}
+                      className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium text-sm"
+                    >
+                      <RefreshCw size={16} />
+                      Проверить соединение
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsErrorRecoveryDismissed(true)
+                        setRecoveryAttemptCount(0)
+                        setPausePipeline(false)
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 border border-gray-300 transition-colors font-medium text-sm"
+                    >
+                      <Clock size={16} />
+                      Подождать восстановления
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-gray-700 mb-4">
+                    Один или несколько этапов pipeline завершились с ошибкой. Вы можете:
+                  </p>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-start gap-2 text-sm">
+                      <RefreshCw size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                      <span><strong>Повторить ошибочный шаг</strong> - попытаться выполнить шаг заново</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm">
+                      <ChevronRight size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                      <span><strong>Пропустить шаг</strong> - продолжить выполнение без этого шага</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm">
+                      <RotateCcw size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                      <span><strong>Повторить всё</strong> - перезапустить весь pipeline</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleRecoveryAction('retry_step')}
+                      disabled={recoveryAttemptCount >= 3}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                        recoveryAttemptCount >= 3 
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                          : 'bg-amber-600 text-white hover:bg-amber-700'
+                      }`}
+                    >
+                      <RefreshCw size={16} />
+                      Повторить шаг
+                      {recoveryAttemptCount > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-xs bg-amber-500">
+                          {recoveryAttemptCount}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleRecoveryAction('skip_step')}
+                      className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 border border-gray-300 transition-colors font-medium text-sm"
+                    >
+                      <ChevronRight size={16} />
+                      Пропустить
+                    </button>
+                    <button
+                      onClick={() => handleRecoveryAction('retry_all')}
+                      className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 border border-gray-300 transition-colors font-medium text-sm"
+                    >
+                      <RotateCcw size={16} />
+                      Повторить всё
+                    </button>
+                  </div>
+                  
+                  {recoveryAttemptCount >= 3 && (
+                    <p className="text-xs text-gray-500 mt-3">
+                      Превышено количество попыток повтора. Рекомендуется проверить настройки или обратитесь в поддержку.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          <p className="text-sm text-red-600">
-            Некоторые этапы завершились с ошибкой. Проверьте детали шагов для получения информации.
-          </p>
         </div>
       )}
     </div>

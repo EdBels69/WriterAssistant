@@ -1,4 +1,5 @@
 import SmartRouter from '../SmartRouter.js'
+import { describe, test, expect, beforeEach } from 'vitest'
 
 describe('SmartRouter', () => {
   let router

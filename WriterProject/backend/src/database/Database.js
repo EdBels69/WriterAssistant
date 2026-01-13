@@ -32,7 +32,6 @@ class Database {
       }
 
       this.initialized = true
-      console.log('Database initialized successfully')
     } catch (error) {
       console.error('Error initializing database:', error)
       throw error
@@ -41,13 +40,20 @@ class Database {
 
   migrate() {
     try {
-      const tableInfo = this.all('PRAGMA table_info(chat_history)')
-      const hasThinkingColumn = tableInfo.some(col => col.name === 'thinking')
+      const chatTableInfo = this.all('PRAGMA table_info(chat_history)')
+      const hasThinkingColumn = chatTableInfo.some(col => col.name === 'thinking')
       
       if (!hasThinkingColumn) {
         this.db.run('ALTER TABLE chat_history ADD COLUMN thinking TEXT')
         this.save()
-        console.log('Migrated: added thinking column to chat_history')
+      }
+
+      const projectsTableInfo = this.all('PRAGMA table_info(projects)')
+      const hasPipelineTypeColumn = projectsTableInfo.some(col => col.name === 'pipeline_type')
+      
+      if (!hasPipelineTypeColumn) {
+        this.db.run('ALTER TABLE projects ADD COLUMN pipeline_type TEXT')
+        this.save()
       }
     } catch (error) {
       console.error('Migration error:', error)
@@ -264,9 +270,9 @@ class Database {
     return result
   }
 
-  createProject(userId, name, genre, description, targetWords) {
-    const stmt = this.db.prepare(`INSERT INTO projects (user_id, name, genre, description, target_words) VALUES (?, ?, ?, ?, ?)`)
-    stmt.bind([userId, name, genre, description, targetWords])
+  createProject(userId, name, genre, description, targetWords, pipelineType = null) {
+    const stmt = this.db.prepare(`INSERT INTO projects (user_id, name, genre, description, target_words, pipeline_type) VALUES (?, ?, ?, ?, ?, ?)`)
+    stmt.bind([userId, name, genre, description, targetWords, pipelineType])
     stmt.run()
     const rowId = this.db.exec('SELECT last_insert_rowid() as id')[0].values[0][0]
     stmt.free()
@@ -307,11 +313,11 @@ class Database {
     this.save()
   }
 
-  createChapter(projectId, title, content) {
+  createChapter(projectId, title, content = '', orderIndex = 0) {
     const wordCount = content ? content.split(/\s+/).length : 0
     this.run(
-      `INSERT INTO chapters (project_id, title, content, word_count) VALUES (?, ?, ?, ?)`,
-      [projectId, title, content, wordCount]
+      `INSERT INTO chapters (project_id, title, content, word_count, order_index) VALUES (?, ?, ?, ?, ?)`,
+      [projectId, title, content, wordCount, orderIndex]
     )
     this.save()
     return this.get('SELECT * FROM chapters WHERE id = last_insert_rowid()')

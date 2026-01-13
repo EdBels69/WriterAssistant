@@ -1,11 +1,10 @@
-import { memo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FileText, Plus, ArrowLeft } from 'lucide-react'
 import Projects from './Projects'
-import useProjectManagement from '../hooks/useProjectManagement'
-import useSettings from '../hooks/useSettings'
+import { useProjectManagement } from '../hooks/useProjectManagement'
+import { useSettings } from '../hooks/useSettings'
 
-function ProjectsPage() {
+export default function ProjectsPage() {
   const navigate = useNavigate()
   const { projectId } = useParams()
 
@@ -90,5 +89,3 @@ function ProjectsPage() {
     </div>
   )
 }
-
-export default memo(ProjectsPage)

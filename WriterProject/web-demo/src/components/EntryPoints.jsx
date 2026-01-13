@@ -1,22 +1,19 @@
 import React, { useState } from 'react'
 import { MessageSquare, Edit3, FileText } from 'lucide-react'
-import { debounce } from '../utils/debounce'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 const MAX_TOTAL_SIZE = 100 * 1024 * 1024
 const ALLOWED_FILE_TYPES = ['.txt', '.md', '.json', '.csv', '.pdf', '.doc', '.docx']
 
-const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
+const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText, uploadedFiles: uploadedFilesProp, setUploadedFiles: setUploadedFilesProp }) => {
   const [chatMessages, setChatMessages] = useState([])
   const [chatInput, setChatInput] = useState('')
   const [context, setContext] = useState({})
-  const [uploadedFiles, setUploadedFiles] = useState([])
+  const [uploadedFilesState, setUploadedFilesState] = useState([])
+  const uploadedFiles = uploadedFilesProp ?? uploadedFilesState
+  const setUploadedFiles = setUploadedFilesProp ?? setUploadedFilesState
   const [fileQuestion, setFileQuestion] = useState('')
   const [fileErrors, setFileErrors] = useState([])
-
-  const debouncedSetChatInput = debounce(setChatInput, 300)
-  const debouncedSetInputText = debounce(setInputText, 300)
-  const debouncedSetFileQuestion = debounce(setFileQuestion, 300)
 
   const calculateTotalSize = (files) => {
     return files.reduce((total, file) => total + file.size, 0)
@@ -62,11 +59,11 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
 
     if (newErrors.length > 0) {
       setFileErrors(newErrors)
+      setTimeout(() => setFileErrors([]), 5000)
     }
 
     if (validFiles.length > 0) {
-      setUploadedFiles(prev => [...prev, ...validFiles])
-      setTimeout(() => setFileErrors([]), 5000)
+      setUploadedFiles([...uploadedFiles, ...validFiles])
     }
   }
 
@@ -75,7 +72,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
   }
 
   const removeFile = (index) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index))
+    setUploadedFiles(uploadedFiles.filter((_, i) => i !== index))
   }
 
   const handleAskQuestion = async () => {
@@ -251,7 +248,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
             <input
               type="text"
               value={chatInput}
-              onChange={(e) => debouncedSetChatInput(e.target.value)}
+              onChange={(e) => setChatInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Введите ваше сообщение или вопрос..."
               className="flex-1 input-field"
@@ -296,7 +293,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
         <div className="text-input-container mt-4">
           <textarea
             value={inputText}
-            onChange={(e) => debouncedSetInputText(e.target.value)}
+            onChange={(e) => setInputText(e.target.value)}
             placeholder="Вставьте текст для обработки из Word или другого редактора...
 
 Вы можете применить к этому тексту все инструменты анализа:"
@@ -334,6 +331,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
                 multiple
                 onChange={handleFileUpload}
                 className="hidden" 
+                aria-label="Загрузить файлы / Upload files"
               />
               <div className="text-center">
                 <FileText size={32} className="mx-auto mb-2 text-gray-400" aria-hidden="true" />
@@ -407,7 +405,7 @@ const EntryPoints = ({ inputMode, setInputMode, inputText, setInputText }) => {
                 <input
                   type="text"
                   value={fileQuestion}
-                  onChange={(e) => debouncedSetFileQuestion(e.target.value)}
+                  onChange={(e) => setFileQuestion(e.target.value)}
                   placeholder="Например: Какие основные выводы в этих документах?"
                   className="flex-1 input-field"
                   onKeyPress={(e) => {

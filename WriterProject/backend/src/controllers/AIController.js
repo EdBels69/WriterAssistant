@@ -5,8 +5,8 @@ import SmartRouter from '../services/SmartRouter.js'
 import AIRequestHandler from '../services/AIRequestHandler.js'
 import OutputValidator from '../services/OutputValidator.js'
 import MetricsCollector from '../services/MetricsCollector.js'
-import { validateBody, textValidationSchema, styleValidationSchema, generateContentValidationSchema, researchValidationSchema } from '../middleware/validation.js'
-import { asyncHandler, ValidationError, ExternalServiceError } from '../middleware/errorHandler.js'
+import { validateBody, textValidationSchema, styleValidationSchema, generateContentValidationSchema } from '../middleware/validation.js'
+import { asyncHandler } from '../middleware/errorHandler.js'
 import prompts from '../prompts/index.js'
 
 class AIController {
@@ -17,74 +17,47 @@ class AIController {
       process.env.GLM_API_KEY,
       process.env.GLM_SECONDARY_API_KEY
     )
-    this._chunkingService = null
-    this._multiAgentService = null
-    this._outputValidator = null
-    this._metricsCollector = null
-    this._aiHandler = null
-    this._prismaFlowGenerator = null
-    this._forestPlotGenerator = null
-    this._humanizer = null
+    this.aiHandler = new AIRequestHandler(this.smartRouter)
+    this.chunkingService = new TextChunkingService()
+    this.multiAgentService = new MultiAgentService()
+    this.outputValidator = new OutputValidator()
+    this.metricsCollector = new MetricsCollector()
     this.routes()
   }
 
-  get chunkingService() {
-    if (!this._chunkingService) {
-      this._chunkingService = new TextChunkingService()
-    }
-    return this._chunkingService
+  getResultText(result) {
+    return result?.content || result?.output || ''
   }
 
-  get multiAgentService() {
-    if (!this._multiAgentService) {
-      this._multiAgentService = new MultiAgentService()
-    }
-    return this._multiAgentService
+  validateOutput(result, ...validatorArgs) {
+    return this.outputValidator.validate(this.getResultText(result), ...validatorArgs)
   }
 
-  get outputValidator() {
-    if (!this._outputValidator) {
-      this._outputValidator = new OutputValidator()
-    }
-    return this._outputValidator
+  recordSuccessMetric(startTime, category, action, result, validation) {
+    const output = this.getResultText(result)
+    const responseTime = Date.now() - startTime
+
+    this.metricsCollector.recordMetric(category, action, {
+      responseTime,
+      success: !result?.error,
+      outputLength: output.length,
+      qualityScore: validation.score,
+      error: result?.error || null
+    })
+
+    return { responseTime, output }
   }
 
-  get metricsCollector() {
-    if (!this._metricsCollector) {
-      this._metricsCollector = new MetricsCollector()
-    }
-    return this._metricsCollector
-  }
+  recordFailureMetric(startTime, category, action, errorMessage) {
+    const responseTime = Date.now() - startTime
 
-  get aiHandler() {
-    if (!this._aiHandler) {
-      this._aiHandler = new AIRequestHandler(this.smartRouter)
-    }
-    return this._aiHandler
-  }
-
-  get prismaFlowGenerator() {
-    if (!this._prismaFlowGenerator) {
-      const PrismaFlowGenerator = import('../services/PrismaFlowGenerator.js').then(m => m.default)
-      this._prismaFlowGenerator = PrismaFlowGenerator
-    }
-    return this._prismaFlowGenerator
-  }
-
-  get forestPlotGenerator() {
-    if (!this._forestPlotGenerator) {
-      const ForestPlotGenerator = import('../services/ForestPlotGenerator.js').then(m => m.default)
-      this._forestPlotGenerator = ForestPlotGenerator
-    }
-    return this._forestPlotGenerator
-  }
-
-  get humanizer() {
-    if (!this._humanizer) {
-      const Humanizer = import('../services/Humanizer.js').then(m => m.default)
-      this._humanizer = Humanizer
-    }
-    return this._humanizer
+    this.metricsCollector.recordMetric(category, action, {
+      responseTime,
+      success: false,
+      outputLength: 0,
+      qualityScore: 0,
+      error: errorMessage
+    })
   }
 
   routes() {
@@ -98,29 +71,29 @@ class AIController {
     this.router.post('/improve', validateBody(textValidationSchema), asyncHandler(this.improveWriting.bind(this)))
     this.router.post('/description', validateBody(generateContentValidationSchema), asyncHandler(this.generateDescription.bind(this)))
     this.router.post('/analyze', validateBody(textValidationSchema), asyncHandler(this.analyzeText.bind(this)))
-    this.router.post('/brainstorm', validateBody(researchValidationSchema), asyncHandler(this.brainstorm.bind(this)))
-    this.router.post('/hypothesis', validateBody(researchValidationSchema), asyncHandler(this.generateHypothesis.bind(this)))
-    this.router.post('/structure-ideas', validateBody(researchValidationSchema), asyncHandler(this.structureIdeas.bind(this)))
-    this.router.post('/structure-methodology', validateBody(researchValidationSchema), asyncHandler(this.structureMethodology.bind(this)))
-    this.router.post('/literature-review', validateBody(researchValidationSchema), asyncHandler(this.literatureReview.bind(this)))
-    this.router.post('/statistical-analysis', validateBody(textValidationSchema), asyncHandler(this.statisticalAnalysis.bind(this)))
-    this.router.post('/process-large-text', validateBody(textValidationSchema), asyncHandler(this.processLargeText.bind(this)))
-    this.router.post('/research-design', validateBody(researchValidationSchema), asyncHandler(this.generateResearchDesign.bind(this)))
-    this.router.post('/analyze-results', validateBody(textValidationSchema), asyncHandler(this.analyzeResults.bind(this)))
-    this.router.post('/generate-discussion', validateBody(textValidationSchema), asyncHandler(this.generateDiscussion.bind(this)))
-    this.router.post('/generate-conclusion', validateBody(textValidationSchema), asyncHandler(this.generateConclusion.bind(this)))
-    this.router.post('/improve-academic-style', validateBody(textValidationSchema), asyncHandler(this.improveAcademicStyle.bind(this)))
-    this.router.post('/analyze-upload', validateBody(textValidationSchema), asyncHandler(this.analyzeUpload.bind(this)))
-    this.router.post('/edit-upload', validateBody(styleValidationSchema), asyncHandler(this.editUpload.bind(this)))
-    this.router.post('/extract-references', validateBody(textValidationSchema), asyncHandler(this.extractReferences.bind(this)))
-    this.router.post('/synthesize-uploads', validateBody({ uploads: { type: 'array', required: true } }), asyncHandler(this.synthesizeUploads.bind(this)))
+    this.router.post('/brainstorm', validateBody({ topic: { type: 'string', required: true, minLength: 1, maxLength: 1000 }, category: { type: 'string', required: false }, context: { type: 'string', required: false } }), asyncHandler(this.brainstorm.bind(this)))
+    this.router.post('/hypothesis', validateBody({ researchArea: { type: 'string', required: true, minLength: 1, maxLength: 500 }, researchQuestion: { type: 'string', required: true, minLength: 3, maxLength: 2000 }, context: { type: 'string', required: false } }), asyncHandler(this.generateHypothesis.bind(this)))
+    this.router.post('/structure-ideas', validateBody({ sources: { type: 'string', required: true, minLength: 1, maxLength: 200000 }, researchGoal: { type: 'string', required: true, minLength: 3, maxLength: 2000 }, context: { type: 'string', required: false } }), asyncHandler(this.structureIdeas.bind(this)))
+    this.router.post('/structure-methodology', validateBody({ researchArea: { type: 'string', required: true, minLength: 1, maxLength: 500 }, researchQuestion: { type: 'string', required: true, minLength: 3, maxLength: 2000 }, context: { type: 'string', required: false } }), asyncHandler(this.structureMethodology.bind(this)))
+    this.router.post('/literature-review', validateBody({ topic: { type: 'string', required: true, minLength: 3, maxLength: 2000 }, reviewType: { type: 'string', required: false, enum: ['narrative', 'systematic', 'meta-analysis'] }, context: { type: 'string', required: false }, text: { type: 'string', required: false } }), asyncHandler(this.literatureReview.bind(this)))
+    this.router.post('/statistical-analysis', validateBody({ researchQuestion: { type: 'string', required: true, minLength: 3, maxLength: 2000 }, dataDescription: { type: 'string', required: true, minLength: 3, maxLength: 200000 }, analysisGoal: { type: 'string', required: false }, context: { type: 'string', required: false }, text: { type: 'string', required: false } }), asyncHandler(this.statisticalAnalysis.bind(this)))
+    this.router.post('/process-large-text', validateBody({ text: { type: 'string', required: true, minLength: 1, maxLength: 200000 }, task: { type: 'string', required: true, enum: ['edit', 'improve', 'summarize', 'analyze'] }, options: { type: 'object', required: false } }), asyncHandler(this.processLargeText.bind(this)))
+    this.router.post('/research-design', validateBody({ researchQuestion: { type: 'string', required: true, minLength: 3, maxLength: 2000 }, researchType: { type: 'string', required: false }, text: { type: 'string', required: false } }), asyncHandler(this.generateResearchDesign.bind(this)))
+    this.router.post('/analyze-results', validateBody({ results: { type: 'string', required: true, minLength: 3, maxLength: 200000 }, researchQuestion: { type: 'string', required: true, minLength: 3, maxLength: 2000 }, context: { type: 'string', required: false }, text: { type: 'string', required: false } }), asyncHandler(this.analyzeResults.bind(this)))
+    this.router.post('/generate-discussion', validateBody({ results: { type: 'string', required: true, minLength: 3, maxLength: 200000 }, limitations: { type: 'string', required: false }, implications: { type: 'string', required: false }, context: { type: 'string', required: false }, text: { type: 'string', required: false } }), asyncHandler(this.generateDiscussion.bind(this)))
+    this.router.post('/generate-conclusion', validateBody({ results: { type: 'string', required: true, minLength: 3, maxLength: 200000 }, implications: { type: 'string', required: false }, context: { type: 'string', required: false }, text: { type: 'string', required: false } }), asyncHandler(this.generateConclusion.bind(this)))
+    this.router.post('/improve-academic-style', validateBody({ text: { type: 'string', required: true, minLength: 1, maxLength: 200000 }, targetAudience: { type: 'string', required: false } }), asyncHandler(this.improveAcademicStyle.bind(this)))
+    this.router.post('/analyze-upload', validateBody({ fileContent: { type: 'string', required: true, minLength: 1, maxLength: 5000000 }, fileName: { type: 'string', required: true, minLength: 1, maxLength: 500 }, analysisType: { type: 'string', required: false } }), asyncHandler(this.analyzeUpload.bind(this)))
+    this.router.post('/edit-upload', validateBody({ fileContent: { type: 'string', required: true, minLength: 1, maxLength: 5000000 }, fileName: { type: 'string', required: true, minLength: 1, maxLength: 500 }, editType: { type: 'string', required: false }, instructions: { type: 'string', required: false } }), asyncHandler(this.editUpload.bind(this)))
+    this.router.post('/extract-references', validateBody({ fileContent: { type: 'string', required: true, minLength: 1, maxLength: 5000000 }, fileName: { type: 'string', required: true, minLength: 1, maxLength: 500 } }), asyncHandler(this.extractReferences.bind(this)))
+    this.router.post('/synthesize-uploads', validateBody({ uploadedFiles: { type: 'array', required: true }, researchGoal: { type: 'string', required: true, minLength: 3, maxLength: 2000 } }), asyncHandler(this.synthesizeUploads.bind(this)))
     this.router.post('/chat', validateBody({ message: { type: 'string', required: true, minLength: 1 } }), asyncHandler(this.chat.bind(this)))
-    this.router.post('/multiagent', validateBody(generateContentValidationSchema), asyncHandler(this.executeMultiAgent.bind(this)))
+    this.router.post('/multiagent', validateBody({ task: { type: 'object', required: true }, agents: { type: 'array', required: true }, apiKeys: { type: 'object', required: false } }), asyncHandler(this.executeMultiAgent.bind(this)))
     this.router.post('/multiagent/pipelines', asyncHandler(this.getPipelines.bind(this)))
-    this.router.post('/multiagent/hypothesis', validateBody(researchValidationSchema), asyncHandler(this.multiAgentHypothesis.bind(this)))
-    this.router.post('/multiagent/structure-ideas', validateBody(researchValidationSchema), asyncHandler(this.multiAgentStructureIdeas.bind(this)))
-    this.router.post('/multiagent/literature-review', validateBody(researchValidationSchema), asyncHandler(this.multiAgentLiteratureReview.bind(this)))
-    this.router.post('/multiagent/meta-analysis', validateBody({ uploads: { type: 'array', required: true } }), asyncHandler(this.multiAgentMetaAnalysis.bind(this)))
+    this.router.post('/multiagent/hypothesis', validateBody({ researchArea: { type: 'string', required: true, minLength: 1, maxLength: 500 }, researchQuestion: { type: 'string', required: true, minLength: 3, maxLength: 2000 }, context: { type: 'string', required: false }, apiKeys: { type: 'object', required: false } }), asyncHandler(this.multiAgentHypothesis.bind(this)))
+    this.router.post('/multiagent/structure-ideas', validateBody({ sources: { type: 'string', required: true, minLength: 1, maxLength: 200000 }, researchGoal: { type: 'string', required: true, minLength: 3, maxLength: 2000 }, context: { type: 'string', required: false }, apiKeys: { type: 'object', required: false } }), asyncHandler(this.multiAgentStructureIdeas.bind(this)))
+    this.router.post('/multiagent/literature-review', validateBody({ topic: { type: 'string', required: true, minLength: 3, maxLength: 2000 }, reviewType: { type: 'string', required: false, enum: ['narrative', 'systematic', 'meta-analysis'] }, context: { type: 'string', required: false }, apiKeys: { type: 'object', required: false } }), asyncHandler(this.multiAgentLiteratureReview.bind(this)))
+    this.router.post('/multiagent/meta-analysis', validateBody({ studies: { type: 'array', required: true }, effectMeasures: { type: 'array', required: false }, context: { type: 'string', required: false }, apiKeys: { type: 'object', required: false } }), asyncHandler(this.multiAgentMetaAnalysis.bind(this)))
     this.router.post('/code/generate', validateBody({ prompt: { type: 'string', required: true, minLength: 1 }, language: { type: 'string', required: true } }), asyncHandler(this.generateCode.bind(this)))
     this.router.post('/code/review', validateBody({ code: { type: 'string', required: true, minLength: 1 }, language: { type: 'string', required: true } }), asyncHandler(this.reviewCode.bind(this)))
     this.router.post('/code/debug', validateBody({ code: { type: 'string', required: true, minLength: 1 }, language: { type: 'string', required: true }, error: { type: 'string', required: true } }), asyncHandler(this.debugCode.bind(this)))
@@ -146,34 +119,17 @@ class AIController {
             openRouterKey
           })
         : await this.glmService.generateIdeas(genre, theme, count, text)
-      
-      const responseTime = Date.now() - startTime
-      const validation = this.outputValidator.validate(result.content || result.output || '', 'creative', 'generateIdeas')
-      
-      this.metricsCollector.recordMetric('creative', 'generateIdeas', {
-        responseTime,
-        success: !result.error,
-        outputLength: (result.content || result.output || '').length,
-        qualityScore: validation.score,
-        error: result.error || null
-      })
-      
+
+      const validation = this.validateOutput(result, 'creative', 'generateIdeas')
+      this.recordSuccessMetric(startTime, 'creative', 'generateIdeas', result, validation)
+
       res.json({
         ...result,
         qualityScore: validation.score,
         validationPassed: validation.valid
       })
     } catch (error) {
-      const responseTime = Date.now() - startTime
-      
-      this.metricsCollector.recordMetric('creative', 'generateIdeas', {
-        responseTime,
-        success: false,
-        outputLength: 0,
-        qualityScore: 0,
-        error: error.message
-      })
-      
+      this.recordFailureMetric(startTime, 'creative', 'generateIdeas', error.message)
       throw error
     }
   }
@@ -184,33 +140,17 @@ class AIController {
     
     try {
       const result = await this.glmService.expandText(text, context)
-      const responseTime = Date.now() - startTime
-      const validation = this.outputValidator.validate(result.content || result.output || '', 'creative', 'expandText')
-      
-      this.metricsCollector.recordMetric('creative', 'expandText', {
-        responseTime,
-        success: !result.error,
-        outputLength: (result.content || result.output || '').length,
-        qualityScore: validation.score,
-        error: result.error || null
-      })
-      
+
+      const validation = this.validateOutput(result, 'creative', 'expandText')
+      this.recordSuccessMetric(startTime, 'creative', 'expandText', result, validation)
+
       res.json({
         ...result,
         qualityScore: validation.score,
         validationPassed: validation.valid
       })
     } catch (error) {
-      const responseTime = Date.now() - startTime
-      
-      this.metricsCollector.recordMetric('creative', 'expandText', {
-        responseTime,
-        success: false,
-        outputLength: 0,
-        qualityScore: 0,
-        error: error.message
-      })
-      
+      this.recordFailureMetric(startTime, 'creative', 'expandText', error.message)
       throw error
     }
   }
@@ -229,7 +169,7 @@ class AIController {
         result = await this.aiHandler.routeRequestWithChunking('style editing', text, {
           systemPrompt,
           provider: provider || 'qwen',
-          onProgress: (progress) => {}
+          onProgress: () => {}
         })
       } else {
         result = await this.aiHandler.routeRequest('style editing', userPrompt, {
@@ -240,40 +180,23 @@ class AIController {
           forceProvider: provider
         })
       }
-      
-      const responseTime = Date.now() - startTime
-      const validation = this.outputValidator.validate(result.content || result.output || '', 'creative', 'editStyle')
-      
-      this.metricsCollector.recordMetric('creative', 'editStyle', {
-        responseTime,
-        success: !result.error,
-        outputLength: (result.content || result.output || '').length,
-        qualityScore: validation.score,
-        error: result.error || null
-      })
-      
+
+      const validation = this.validateOutput(result, 'creative', 'editStyle')
+      this.recordSuccessMetric(startTime, 'creative', 'editStyle', result, validation)
+
       res.json({
         ...result,
         qualityScore: validation.score,
         validationPassed: validation.valid
       })
     } catch (error) {
-      const responseTime = Date.now() - startTime
-      
-      this.metricsCollector.recordMetric('creative', 'editStyle', {
-        responseTime,
-        success: false,
-        outputLength: 0,
-        qualityScore: 0,
-        error: error.message
-      })
-      
+      this.recordFailureMetric(startTime, 'creative', 'editStyle', error.message)
       throw error
     }
   }
 
   async styleEditing(req, res) {
-    const { text, targetStyle, provider, openRouterKey, useChunking = false } = req.body
+    const { text, targetStyle, provider, openRouterKey } = req.body
 
     const systemPrompt = prompts.creativeWriting.styleEditing.system(targetStyle)
 
@@ -341,7 +264,7 @@ class AIController {
   }
 
   async brainstorm(req, res) {
-    const { topic, category = 'ideas', context = '' } = req.body
+    const { topic, context = '' } = req.body
     const result = await this.smartRouter.brainstorm(topic, context)
     res.json(result)
   }
@@ -373,17 +296,6 @@ class AIController {
   }
 
   extractSuggestedTools(text) {
-    const tools = [
-      'Структурирование идей',
-      'Извлечение ссылок',
-      'Генерация гипотез',
-      'Методология',
-      'Нарративный обзор',
-      'Систематический обзор',
-      'Мета-анализ',
-      'Академический стиль'
-    ]
-
     const suggested = []
     const lowerText = text.toLowerCase()
 
@@ -421,34 +333,17 @@ class AIController {
     
     try {
       const result = await this.smartRouter.generateHypothesis(researchArea, researchQuestion, context)
-      const responseTime = Date.now() - startTime
-      
-      const validation = this.outputValidator.validate(result.content || result.output || '', 'research', 'generateHypothesis')
-      
-      this.metricsCollector.recordMetric('research', 'hypothesis', {
-        responseTime,
-        success: !result.error,
-        outputLength: (result.content || result.output || '').length,
-        qualityScore: validation.score,
-        error: result.error || null
-      })
-      
+
+      const validation = this.validateOutput(result, 'research', 'generateHypothesis')
+      this.recordSuccessMetric(startTime, 'research', 'hypothesis', result, validation)
+
       res.json({
         ...result,
         qualityScore: validation.score,
         validationPassed: validation.valid
       })
     } catch (error) {
-      const responseTime = Date.now() - startTime
-      
-      this.metricsCollector.recordMetric('research', 'hypothesis', {
-        responseTime,
-        success: false,
-        outputLength: 0,
-        qualityScore: 0,
-        error: error.message
-      })
-      
+      this.recordFailureMetric(startTime, 'research', 'hypothesis', error.message)
       throw error
     }
   }
@@ -468,120 +363,40 @@ class AIController {
             openRouterKey
           })
         : await this.smartRouter.structureIdeas(sources, researchGoal, context)
-      
-      const responseTime = Date.now() - startTime
-      const validation = this.outputValidator.validate(result.content || result.output || '', 'research', 'structureIdeas')
-      
-      this.metricsCollector.recordMetric('research', 'structureIdeas', {
-        responseTime,
-        success: !result.error,
-        outputLength: (result.content || result.output || '').length,
-        qualityScore: validation.score,
-        error: result.error || null
-      })
-      
+
+      const validation = this.validateOutput(result, 'research', 'structureIdeas')
+      this.recordSuccessMetric(startTime, 'research', 'structureIdeas', result, validation)
+
       res.json({
         ...result,
         qualityScore: validation.score,
         validationPassed: validation.valid
       })
     } catch (error) {
-      const responseTime = Date.now() - startTime
-      
-      this.metricsCollector.recordMetric('research', 'structureIdeas', {
-        responseTime,
-        success: false,
-        outputLength: 0,
-        qualityScore: 0,
-        error: error.message
-      })
-      
+      this.recordFailureMetric(startTime, 'research', 'structureIdeas', error.message)
       throw error
     }
   }
 
   async structureMethodology(req, res) {
-    const startTime = Date.now()
     const { researchArea, researchQuestion, context = '' } = req.body
-    
-    try {
-      const result = await this.smartRouter.structureMethodology(researchArea, researchQuestion, context)
-      const responseTime = Date.now() - startTime
-      const validation = this.outputValidator.validate(result.content || result.output || '', 'research', 'structureMethodology')
-      
-      this.metricsCollector.recordMetric('research', 'structureMethodology', {
-        responseTime,
-        success: !result.error,
-        outputLength: (result.content || result.output || '').length,
-        qualityScore: validation.score,
-        error: result.error || null
-      })
-      
-      res.json({
-        ...result,
-        qualityScore: validation.score,
-        validationPassed: validation.valid
-      })
-    } catch (error) {
-      const responseTime = Date.now() - startTime
-      
-      this.metricsCollector.recordMetric('research', 'structureMethodology', {
-        responseTime,
-        success: false,
-        outputLength: 0,
-        qualityScore: 0,
-        error: error.message
-      })
-      
-      throw error
-    }
+    const result = await this.smartRouter.structureMethodology(researchArea, researchQuestion, context)
+    res.json(result)
   }
 
   async literatureReview(req, res) {
-    const startTime = Date.now()
     const { topic, reviewType = 'narrative', context = '', provider, openRouterKey, text } = req.body
-    
-    try {
-      const result = provider 
-        ? await this.aiHandler.routeRequest('literature review', prompts.academic.literatureReview.user(reviewType, topic, context, text), {
-            systemPrompt: prompts.academic.literatureReview.system(reviewType),
-            temperature: 0.7,
-            maxTokens: 4096,
-            priority: 'balanced',
-            forceProvider: provider,
-            openRouterKey
-          })
-        : await this.smartRouter.literatureReview(topic, reviewType, context)
-      
-      const responseTime = Date.now() - startTime
-      const validation = this.outputValidator.validate(result.content || result.output || '', 'research', 'literatureReview')
-      
-      this.metricsCollector.recordMetric('research', 'literatureReview', {
-        responseTime,
-        success: !result.error,
-        outputLength: (result.content || result.output || '').length,
-        qualityScore: validation.score,
-        error: result.error || null
-      })
-      
-      res.json({
-        ...result,
-        qualityScore: validation.score,
-        validationPassed: validation.valid
-      })
-    } catch (error) {
-      const responseTime = Date.now() - startTime
-      
-      this.metricsCollector.recordMetric('research', 'literatureReview', {
-        responseTime,
-        success: false,
-        outputLength: 0,
-        qualityScore: 0,
-        error: error.message
-      })
-      
-      throw error
-    }
+    const result = provider 
+      ? await this.aiHandler.routeRequest('literature review', prompts.academic.literatureReview.user(reviewType, topic, context, text), {
+          systemPrompt: prompts.academic.literatureReview.system(reviewType),
+          temperature: 0.7,
+          maxTokens: 4096,
+          priority: 'balanced',
+          forceProvider: provider,
+          openRouterKey
+        })
+      : await this.smartRouter.literatureReview(topic, reviewType, context)
+    res.json(result)
   }
 
   async statisticalAnalysis(req, res) {
@@ -750,13 +565,13 @@ class AIController {
     res.json(result)
   }
 
-  async getPipelines(req, res) {
+  async getPipelines(_req, res) {
     const pipelines = this.multiAgentService.getPipelines()
     res.json(pipelines)
   }
 
   async multiAgentHypothesis(req, res) {
-    const { researchArea, researchQuestion, context, data, apiKeys } = req.body
+    const { researchArea, researchQuestion, context, apiKeys } = req.body
 
     if (apiKeys) {
       this.multiAgentService.updateAPIKeys(apiKeys)
@@ -778,7 +593,7 @@ class AIController {
   }
 
   async multiAgentStructureIdeas(req, res) {
-    const { sources, researchGoal, context, data, apiKeys } = req.body
+    const { sources, researchGoal, context, apiKeys } = req.body
 
     if (apiKeys) {
       this.multiAgentService.updateAPIKeys(apiKeys)
@@ -800,7 +615,7 @@ class AIController {
   }
 
   async multiAgentLiteratureReview(req, res) {
-    const { topic, reviewType = 'narrative', context, data, apiKeys } = req.body
+    const { topic, reviewType = 'narrative', context, apiKeys } = req.body
 
     if (apiKeys) {
       this.multiAgentService.updateAPIKeys(apiKeys)
@@ -822,7 +637,7 @@ class AIController {
   }
 
   async multiAgentMetaAnalysis(req, res) {
-    const { studies, effectMeasures, context, data, apiKeys } = req.body
+    const { studies, effectMeasures, context, apiKeys } = req.body
 
     if (apiKeys) {
       this.multiAgentService.updateAPIKeys(apiKeys)
@@ -849,34 +664,17 @@ class AIController {
     
     try {
       const result = await this.glmService.generateCode(task, language, context)
-      const responseTime = Date.now() - startTime
-      
-      const validation = this.outputValidator.validate(result.content || result.output || '', 'code', 'generateCode', language)
-      
-      this.metricsCollector.recordMetric('code', 'generate', {
-        responseTime,
-        success: !result.error,
-        outputLength: (result.content || result.output || '').length,
-        qualityScore: validation.score,
-        error: result.error || null
-      })
-      
+
+      const validation = this.validateOutput(result, 'code', 'generateCode', language)
+      this.recordSuccessMetric(startTime, 'code', 'generate', result, validation)
+
       res.json({
         ...result,
         qualityScore: validation.score,
         validationPassed: validation.valid
       })
     } catch (error) {
-      const responseTime = Date.now() - startTime
-      
-      this.metricsCollector.recordMetric('code', 'generate', {
-        responseTime,
-        success: false,
-        outputLength: 0,
-        qualityScore: 0,
-        error: error.message
-      })
-      
+      this.recordFailureMetric(startTime, 'code', 'generate', error.message)
       throw error
     }
   }

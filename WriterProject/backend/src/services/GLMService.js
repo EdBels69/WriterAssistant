@@ -1,33 +1,15 @@
 import axios from 'axios'
-import https from 'https'
 
 class GLMService {
   constructor(apiKey) {
     this.apiKey = apiKey
-    this.baseURL = 'https://api.z.ai/api/paas/v4'
-    this.codingURL = 'https://api.z.ai/api/coding/paas/v4'
+    this.apiClient = axios.create()
+    this.baseURL = process.env.GLM_ENDPOINT || 'https://api.z.ai/api/paas/v4'
+    this.codingURL = process.env.GLM_ENDPOINT || 'https://api.z.ai/api/coding/paas/v4'
     this.model = 'glm-4.7'
     this.maxRetries = 5
     this.baseDelay = 1000
     this.maxDelay = 30000
-
-    this.httpAgent = new https.Agent({
-      keepAlive: true,
-      maxSockets: 10,
-      maxFreeSockets: 5,
-      timeout: 60000
-    })
-
-    this.client = axios.create({
-      httpsAgent: this.httpAgent,
-      timeout: 90000,
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    this.pendingRequests = new Map()
   }
 
   async sleep(ms) {
@@ -35,12 +17,9 @@ class GLMService {
   }
 
   calculateDelay(attempt) {
-    const exponentialDelay = Math.min(
-      this.baseDelay * Math.pow(2, attempt),
-      this.maxDelay
-    )
-    const jitter = Math.random() * exponentialDelay * 0.1
-    return Math.floor(exponentialDelay + jitter)
+    const base = Math.min(this.baseDelay * Math.pow(2, attempt), this.maxDelay)
+    const jitter = Math.random() * Math.min(500, base * 0.1)
+    return Math.floor(Math.min(base + jitter, this.maxDelay))
   }
 
   isRetryableError(error) {
@@ -55,7 +34,11 @@ class GLMService {
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        const response = await this.client.post(url, requestBody, {
+        const response = await this.apiClient.post(url, requestBody, {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
           timeout
         })
 
@@ -79,28 +62,7 @@ class GLMService {
     }
   }
 
-  getRequestKey(prompt, options) {
-    return `${prompt.slice(0, 100)}:${options.temperature || 0.7}`
-  }
-
   async generateCompletion(prompt, options = {}) {
-    const requestKey = this.getRequestKey(prompt, options)
-
-    if (this.pendingRequests.has(requestKey)) {
-      console.log('[Dedup] Waiting for existing request')
-      return this.pendingRequests.get(requestKey)
-    }
-
-    const requestPromise = this._executeCompletion(prompt, options)
-      .finally(() => {
-        this.pendingRequests.delete(requestKey)
-      })
-
-    this.pendingRequests.set(requestKey, requestPromise)
-    return requestPromise
-  }
-
-  async _executeCompletion(prompt, options = {}) {
     const {
       temperature = 0.7,
       maxTokens = 2000,

@@ -50,8 +50,15 @@ class TextChunkingService {
   }
 
   async processLargeText(text, processFunction, options = {}) {
-    const { onProgress, maxRetries = 3, delay = 1000 } = options
-    const chunks = this.splitTextIntoChunks(text)
+    const {
+      onProgress,
+      maxRetries = 3,
+      delay = 1000,
+      maxTokens = this.MAX_TOKENS_PER_CHUNK,
+      overlap = this.CHUNK_OVERLAP
+    } = options
+
+    const chunks = this.splitTextIntoChunks(text, maxTokens, overlap)
     const results = []
     const errors = []
 

@@ -89,17 +89,15 @@ const TemplateSelector = ({ onSelectTemplate }) => {
     const template = pipelineTemplates[templateKey]
     setSelectedTemplate(templateKey)
     
+    const pipeline = createPipeline(template.name, templateKey)
+    
     if (templateKey !== 'customPipeline') {
-      const pipeline = createPipeline(template.name, templateKey)
-      
       template.steps.forEach((step) => {
         addStep(pipeline.id, step)
       })
-      
-      onSelectTemplate?.(pipeline)
-    } else {
-      onSelectTemplate?.(null)
     }
+    
+    onSelectTemplate?.(pipeline)
   }
 
   return (
@@ -182,7 +180,11 @@ const TemplateSelector = ({ onSelectTemplate }) => {
               Выберите инструменты и создайте свой уникальный workflow
             </p>
             <button
-              onClick={() => onSelectTemplate?.(null)}
+              onClick={(e) => {
+                e.stopPropagation()
+                const customPipeline = createPipeline('Custom Pipeline', 'customPipeline')
+                onSelectTemplate?.(customPipeline)
+              }}
               className="px-6 py-2 bg-academic-teal-600 text-white rounded-lg hover:bg-academic-teal-700 transition-colors"
             >
               Открыть редактор pipeline

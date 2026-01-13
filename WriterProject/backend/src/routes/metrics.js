@@ -65,11 +65,19 @@ router.get('/category/:category', (req, res) => {
       })
     }
     
-    const metrics = metricsCollector.getCategoryMetrics(category)
+    const instruments = metricsCollector.getCategoryMetrics(category)
+    const totalRequests = Object.values(instruments).reduce(
+      (sum, metrics) => sum + (metrics?.totalRequests || 0),
+      0
+    )
     
     res.json({
       success: true,
-      data: metrics,
+      data: {
+        category,
+        totalRequests,
+        instruments
+      },
       timestamp: new Date().toISOString()
     })
   } catch (error) {

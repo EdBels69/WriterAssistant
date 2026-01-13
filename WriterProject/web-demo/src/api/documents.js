@@ -1,4 +1,9 @@
-const API_BASE = 'http://localhost:5000/api/documents'
+const getApiBaseUrl = () => {
+  const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || '/api'
+  return base.endsWith('/') ? base.slice(0, -1) : base
+}
+
+const API_BASE = `${getApiBaseUrl()}/documents`
 
 export const documentsAPI = {
   async uploadDocument(file, options = {}) {

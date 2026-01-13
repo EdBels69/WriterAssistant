@@ -1,12 +1,13 @@
 import React from 'react'
 import { 
   FileText, 
-  Sparkles, 
   CheckCircle,
   AlertCircle,
   ChevronRight,
   X
 } from 'lucide-react'
+
+import { getToolMeta } from '../pages/AnalysisTools'
 
 function AnalysisResultsSection({ 
   analysisResults = [], 
@@ -15,32 +16,6 @@ function AnalysisResultsSection({
 }) {
   if (!analysisResults || analysisResults.length === 0) {
     return null
-  }
-
-  const toolNames = {
-    generateIdeas: 'Генерация идей',
-    structureIdeas: 'Структурирование идей',
-    extractReferences: 'Извлечение библиографии',
-    generateHypothesis: 'Генерация гипотез',
-    structureMethodology: 'Структурирование методологии',
-    narrativeReview: 'Нарративный обзор',
-    systematicReview: 'Систематический обзор',
-    metaAnalysis: 'Мета-анализ',
-    analyzeResults: 'Анализ результатов',
-    improveStyle: 'Улучшение стиля'
-  }
-
-  const toolIcons = {
-    generateIdeas: Sparkles,
-    structureIdeas: Sparkles,
-    extractReferences: FileText,
-    generateHypothesis: CheckCircle,
-    structureMethodology: FileText,
-    narrativeReview: FileText,
-    systematicReview: FileText,
-    metaAnalysis: FileText,
-    analyzeResults: FileText,
-    improveStyle: FileText
   }
 
   return (
@@ -69,8 +44,10 @@ function AnalysisResultsSection({
 
       <div className="space-y-4">
         {analysisResults.map((result, index) => {
-          const ToolIcon = toolIcons[result.tool] || FileText
-          const toolName = toolNames[result.tool] || result.tool
+          const meta = getToolMeta(result.tool)
+          const ToolIcon = meta?.icon || FileText
+          const toolName = meta?.label || result.tool
+          const content = typeof result.content === 'string' ? result.content : JSON.stringify(result.content, null, 2)
 
           return (
             <div 
@@ -91,7 +68,7 @@ function AnalysisResultsSection({
                   </div>
                   <div className="p-4 bg-academic-cream-50 rounded-lg mb-3">
                     <p className="text-sm text-academic-navy-800 leading-relaxed whitespace-pre-wrap">
-                      {result.content || 'Анализ выполнен. Результаты будут доступны после обработки.'}
+                      {content || 'Анализ выполнен. Результаты будут доступны после обработки.'}
                     </p>
                   </div>
                   {result.metadata && (

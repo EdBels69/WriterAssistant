@@ -10,6 +10,13 @@ const usePipelineStore = create(
       stepResults: {},
       isPaused: false,
 
+      addPipeline: (pipeline) => {
+        set((state) => ({
+          pipelines: [...state.pipelines, pipeline],
+          activePipeline: pipeline?.id ?? state.activePipeline
+        }))
+      },
+
       createPipeline: (name, type) => {
         const pipeline = {
           id: Date.now(),
@@ -28,6 +35,8 @@ const usePipelineStore = create(
       },
 
       setActivePipeline: (pipelineId) => set({ activePipeline: pipelineId }),
+
+      setIsPaused: (isPaused) => set({ isPaused: Boolean(isPaused) }),
 
       addStep: (pipelineId, step) => {
         set((state) => ({
@@ -101,6 +110,7 @@ const usePipelineStore = create(
       name: 'pipeline-storage',
       partialize: (state) => ({
         pipelines: state.pipelines,
+        activePipeline: state.activePipeline,
         stepResults: state.stepResults
       })
     }

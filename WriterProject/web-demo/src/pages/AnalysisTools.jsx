@@ -1,7 +1,6 @@
-import { memo } from 'react'
 import { ChevronLeft, Sparkles, BookOpen, Activity, Edit3, Code, Brain, FileText, MessageSquare, Network } from 'lucide-react'
 
-const analysisTools = {
+export const toolRegistry = {
   'data-analysis': [
     { id: 'generateIdeas', label: 'Исследование с нуля', description: 'Генерация идей для исследования', icon: Sparkles, color: 'accent-cyan' },
     { id: 'structureIdeas', label: 'Структурирование идей', description: 'Организовать идеи из источников', icon: Sparkles, color: 'accent-cyan' },
@@ -41,17 +40,25 @@ const analysisTools = {
   ]
 }
 
-function AnalysisTools({ activeToolScreen, setActiveToolScreen, selectedTool, setSelectedTool, handleAnalyze }) {
-  const screenTitle = {
-    'data-analysis': 'Анализ данных',
-    'literature-review': 'Обзор литературы',
-    'statistical-analysis': 'Статистический анализ',
-    'style-formatting': 'Стиль и форматирование',
-    'code-tools': 'Код',
-    'multi-agent': 'Мультиагентный ИИ'
-  }
+export const toolScreenTitles = {
+  'data-analysis': 'Анализ данных',
+  'literature-review': 'Обзор литературы',
+  'statistical-analysis': 'Статистический анализ',
+  'style-formatting': 'Стиль и форматирование',
+  'code-tools': 'Код',
+  'multi-agent': 'Мультиагентный ИИ'
+}
 
-  const tools = analysisTools[activeToolScreen] || []
+export const getToolMeta = (toolId) => {
+  for (const tools of Object.values(toolRegistry)) {
+    const found = tools.find(t => t.id === toolId)
+    if (found) return found
+  }
+  return null
+}
+
+export default function AnalysisTools({ activeToolScreen, setActiveToolScreen, selectedTool, setSelectedTool, handleAnalyze }) {
+  const tools = toolRegistry[activeToolScreen] || []
 
   return (
     <div className="space-y-6">
@@ -64,7 +71,7 @@ function AnalysisTools({ activeToolScreen, setActiveToolScreen, selectedTool, se
         >
           <ChevronLeft size={20} aria-hidden="true" />
         </button>
-        <h1 className="text-2xl font-bold text-white font-display">{screenTitle[activeToolScreen] || 'Инструменты'}</h1>
+        <h1 className="text-2xl font-bold text-white font-display">{toolScreenTitles[activeToolScreen] || 'Инструменты'}</h1>
       </div>
 
       <div className="card-elevated p-8 bg-dark-card/50 backdrop-blur-xl border border-dark-border rounded-2xl">
@@ -74,7 +81,7 @@ function AnalysisTools({ activeToolScreen, setActiveToolScreen, selectedTool, se
               key={tool.id}
               type="button"
               role="listitem"
-              onClick={() => { setSelectedTool(tool.id); handleAnalyze(); }}
+              onClick={() => { setSelectedTool(tool.id); handleAnalyze?.(tool.id); }}
               className={`tool-card p-6 text-left transition-all bg-dark-card border border-dark-border rounded-xl hover:border-primary-500/50 ${
                 selectedTool === tool.id ? 'ring-2 ring-primary-500 shadow-glow' : ''
               }`}
@@ -96,5 +103,3 @@ function AnalysisTools({ activeToolScreen, setActiveToolScreen, selectedTool, se
     </div>
   )
 }
-
-export default memo(AnalysisTools)

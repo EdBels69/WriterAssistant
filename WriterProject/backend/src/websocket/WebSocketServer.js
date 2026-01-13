@@ -4,10 +4,15 @@ class WebSocketServer {
   constructor() {
     this.wss = null
     this.clients = new Map()
+    this.clientLastPong = new WeakMap()
+    this.heartbeatInterval = null
   }
 
   start(server) {
-    this.wss = new WSServer({ server })
+    this.wss = new WSServer({ 
+      server,
+      clientTracking: true
+    })
 
     this.wss.on('error', (error) => {
       console.error('WebSocket server error:', error)
@@ -16,19 +21,23 @@ class WebSocketServer {
     this.wss.on('connection', (ws, req) => {
       const userId = this.extractUserId(req)
 
-      console.log(`New WebSocket connection for user: ${userId}`)
-
       if (userId) {
         if (!this.clients.has(userId)) {
           this.clients.set(userId, new Set())
         }
         this.clients.get(userId).add(ws)
 
+        this.clientLastPong.set(ws, Date.now())
+
         ws.send(JSON.stringify({
           type: 'connected',
           userId,
           timestamp: new Date().toISOString()
         }))
+
+        ws.on('pong', () => {
+          this.clientLastPong.set(ws, Date.now())
+        })
       }
 
       ws.on('message', (message) => {
@@ -40,14 +49,14 @@ class WebSocketServer {
         }
       })
 
-      ws.on('close', () => {
+      ws.on('close', (code, reason) => {
+        console.log(`WebSocket disconnected for user: ${userId}, code: ${code}, reason: ${reason}`)
         if (userId && this.clients.has(userId)) {
           this.clients.get(userId).delete(ws)
           if (this.clients.get(userId).size === 0) {
             this.clients.delete(userId)
           }
         }
-        console.log(`WebSocket disconnected for user: ${userId}`)
       })
 
       ws.on('error', (error) => {
@@ -55,7 +64,33 @@ class WebSocketServer {
       })
     })
 
-    console.log('WebSocket server started')
+    this.startHeartbeat()
+  }
+
+  startHeartbeat() {
+    this.heartbeatInterval = setInterval(() => {
+      const now = Date.now()
+      const timeout = 60000
+
+      this.wss.clients.forEach(ws => {
+        if (this.clientLastPong.has(ws)) {
+          const lastPong = this.clientLastPong.get(ws)
+          if (now - lastPong > timeout) {
+            console.log('Client timeout, closing connection')
+            ws.terminate()
+          } else {
+            ws.ping()
+          }
+        }
+      })
+    }, 30000)
+  }
+
+  stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval)
+      this.heartbeatInterval = null
+    }
   }
 
   extractUserId(req) {
@@ -95,8 +130,6 @@ class WebSocketServer {
           }, ws)
         }
         break
-      default:
-        console.log('Unknown message type:', data.type)
     }
   }
 

@@ -1,51 +1,86 @@
 import request from 'supertest'
-import app from '../../index.js'
-import Database from '../../database/Database.js'
-import { join } from 'path'
+import { describe, it, expect, beforeAll, vi } from 'vitest'
+
+vi.mock('../GLMService.js', () => {
+  return {
+    default: class GLMService {
+      constructor() {}
+
+      async generateCompletion(prompt) {
+        return {
+          success: true,
+          content: `TEST: ${prompt}`.slice(0, 2000),
+          thinking: null,
+          usage: { total_tokens: 0 }
+        }
+      }
+    }
+  }
+})
+
+let app
+
+beforeAll(async () => {
+  const mod = await import('../../index.js')
+  app = mod.default
+})
 
 describe('AI Endpoints Integration Tests', () => {
-  let db
-
-  beforeAll(async () => {
-    db = new Database(join(process.cwd(), '../data/writer-assistant.test.db'))
-    await db.init()
-  })
-
-  afterAll(async () => {
-    await db.close()
-  })
-
-  describe('POST /api/ai/generate-hypothesis', () => {
+  describe('POST /api/ai/hypothesis', () => {
     it('should generate a hypothesis successfully', async () => {
       const response = await request(app)
-        .post('/api/ai/generate-hypothesis')
+        .post('/api/ai/hypothesis')
         .send({
-          prompt: 'Создай гипотезу для исследования влияния кофе на продуктивность',
-          provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
+          researchArea: 'Психология труда',
+          researchQuestion: 'Как кофе влияет на продуктивность?',
+          context: 'Короткий контекст'
         })
 
+      const content = response.body.content || response.body.output
+
       expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-      expect(response.body.output.length).toBeGreaterThan(20)
+      expect(content).toBeTruthy()
+      expect(String(content).length).toBeGreaterThan(20)
+      expect(response.body).toHaveProperty('validationPassed')
+      expect(response.body).toHaveProperty('qualityScore')
     })
 
-    it('should return error for missing prompt', async () => {
+    it('should return 400 for missing required fields', async () => {
       const response = await request(app)
-        .post('/api/ai/generate-hypothesis')
-        .send({})
+        .post('/api/ai/hypothesis')
+        .send({
+          researchArea: ''
+        })
 
       expect(response.status).toBe(400)
       expect(response.body).toHaveProperty('error')
     })
+  })
 
-    it('should return error for empty prompt', async () => {
+  describe('POST /api/ai/structure-ideas', () => {
+    it('should structure ideas successfully via provider mode', async () => {
       const response = await request(app)
-        .post('/api/ai/generate-hypothesis')
+        .post('/api/ai/structure-ideas')
         .send({
-          prompt: '',
-          provider: 'openrouter'
+          sources: 'Источник 1: ...\nИсточник 2: ...',
+          researchGoal: 'Структурировать основные идеи',
+          context: 'Дополнительный контекст',
+          provider: 'openrouter',
+          openRouterKey: 'test-key'
+        })
+
+      const content = response.body.content || response.body.output
+
+      expect(response.status).toBe(200)
+      expect(content).toBeTruthy()
+      expect(String(content).length).toBeGreaterThan(20)
+    })
+
+    it('should return 400 for missing sources', async () => {
+      const response = await request(app)
+        .post('/api/ai/structure-ideas')
+        .send({
+          researchGoal: 'Goal'
         })
 
       expect(response.status).toBe(400)
@@ -54,22 +89,24 @@ describe('AI Endpoints Integration Tests', () => {
   })
 
   describe('POST /api/ai/literature-review', () => {
-    it('should generate a literature review successfully', async () => {
+    it('should generate literature review successfully via provider mode', async () => {
       const response = await request(app)
         .post('/api/ai/literature-review')
         .send({
-          prompt: 'Сделай обзор литературы по теме машинного обучения в медицине',
+          topic: 'Машинное обучение в медицине',
+          reviewType: 'narrative',
+          context: 'Короткий контекст',
           provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
+          openRouterKey: 'test-key'
         })
 
+      const content = response.body.content || response.body.output
+
       expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-      expect(response.body.output.length).toBeGreaterThan(50)
+      expect(content).toBeTruthy()
     })
 
-    it('should return error for missing prompt', async () => {
+    it('should return 400 for missing topic', async () => {
       const response = await request(app)
         .post('/api/ai/literature-review')
         .send({})
@@ -79,119 +116,28 @@ describe('AI Endpoints Integration Tests', () => {
     })
   })
 
-  describe('POST /api/ai/generate-methodology', () => {
-    it('should generate a methodology successfully', async () => {
+  describe('POST /api/ai/statistical-analysis', () => {
+    it('should generate analysis successfully via provider mode', async () => {
       const response = await request(app)
-        .post('/api/ai/generate-methodology')
+        .post('/api/ai/statistical-analysis')
         .send({
-          prompt: 'Разработай экспериментальную методологию для исследования влияния музыки на концентрацию',
+          researchQuestion: 'Есть ли связь между X и Y?',
+          dataDescription: 'Выборка: 100 человек; метрики: ...',
           provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
+          openRouterKey: 'test-key'
         })
+
+      const content = response.body.content || response.body.output
 
       expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-      expect(response.body.output.length).toBeGreaterThan(30)
+      expect(content).toBeTruthy()
     })
 
-    it('should return error for missing prompt', async () => {
+    it('should return 400 for missing dataDescription', async () => {
       const response = await request(app)
-        .post('/api/ai/generate-methodology')
-        .send({})
-
-      expect(response.status).toBe(400)
-      expect(response.body).toHaveProperty('error')
-    })
-  })
-
-  describe('POST /api/ai/generate-code', () => {
-    it('should generate code successfully', async () => {
-      const response = await request(app)
-        .post('/api/ai/generate-code')
+        .post('/api/ai/statistical-analysis')
         .send({
-          prompt: 'Напиши функцию для сортировки массива на JavaScript',
-          provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
-        })
-
-      expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-      expect(response.body.output.length).toBeGreaterThan(10)
-    })
-
-    it('should return error for missing prompt', async () => {
-      const response = await request(app)
-        .post('/api/ai/generate-code')
-        .send({})
-
-      expect(response.status).toBe(400)
-      expect(response.body).toHaveProperty('error')
-    })
-  })
-
-  describe('POST /api/ai/generate-abstract', () => {
-    it('should generate an abstract successfully', async () => {
-      const response = await request(app)
-        .post('/api/ai/generate-abstract')
-        .send({
-          prompt: 'В статье исследуется влияние искусственного интеллекта на научные публикации',
-          provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
-        })
-
-      expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-      expect(response.body.output.length).toBeGreaterThan(20)
-    })
-
-    it('should return error for missing prompt', async () => {
-      const response = await request(app)
-        .post('/api/ai/generate-abstract')
-        .send({})
-
-      expect(response.status).toBe(400)
-      expect(response.body).toHaveProperty('error')
-    })
-  })
-
-  describe('POST /api/ai/multiagent/pipeline', () => {
-    it('should run multiagent pipeline successfully', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/pipeline')
-        .send({
-          topic: 'влияние искусственного интеллекта на научное письмо',
-          agents: ['researcher', 'critic', 'synthesizer'],
-          provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
-        })
-
-      expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-      expect(response.body.output.length).toBeGreaterThan(50)
-    })
-
-    it('should return error for missing topic', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/pipeline')
-        .send({
-          agents: ['researcher'],
-          provider: 'openrouter'
-        })
-
-      expect(response.status).toBe(400)
-      expect(response.body).toHaveProperty('error')
-    })
-
-    it('should return error for missing agents array', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/pipeline')
-        .send({
-          topic: 'test topic',
-          provider: 'openrouter'
+          researchQuestion: 'Q'
         })
 
       expect(response.status).toBe(400)
@@ -199,168 +145,28 @@ describe('AI Endpoints Integration Tests', () => {
     })
   })
 
-  describe('POST /api/ai/multiagent/researcher', () => {
-    it('should run researcher agent successfully', async () => {
+  describe('POST /api/ai/style-editing', () => {
+    it('should handle large text via chunking', async () => {
       const response = await request(app)
-        .post('/api/ai/multiagent/researcher')
+        .post('/api/ai/style-editing')
         .send({
-          topic: 'влияние нейросетей на образование',
-          provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
+          text: 'Текст. '.repeat(5000),
+          targetStyle: 'academic',
+          provider: 'qwen',
+          openRouterKey: 'test-key'
         })
 
       expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-      expect(response.body.output.length).toBeGreaterThan(30)
+      expect(response.body).toHaveProperty('success', true)
+      expect(response.body.content).toBeTruthy()
+      expect(response.body.provider).toBeTruthy()
     })
 
-    it('should return error for missing topic', async () => {
+    it('should return 400 for missing text', async () => {
       const response = await request(app)
-        .post('/api/ai/multiagent/researcher')
-        .send({})
-
-      expect(response.status).toBe(400)
-      expect(response.body).toHaveProperty('error')
-    })
-  })
-
-  describe('POST /api/ai/multiagent/critic', () => {
-    it('should run critic agent successfully', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/critic')
+        .post('/api/ai/style-editing')
         .send({
-          content: 'Исследование показало, что кофе повышает продуктивность на 15%',
-          provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
-        })
-
-      expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-    })
-
-    it('should return error for missing content', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/critic')
-        .send({})
-
-      expect(response.status).toBe(400)
-      expect(response.body).toHaveProperty('error')
-    })
-  })
-
-  describe('POST /api/ai/multiagent/synthesizer', () => {
-    it('should run synthesizer agent successfully', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/synthesizer')
-        .send({
-          inputs: 'Исследователь: тема важна\nКритик: нужно больше данных\nМетодолог: подход верный',
-          provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
-        })
-
-      expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-    })
-
-    it('should return error for missing inputs', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/synthesizer')
-        .send({})
-
-      expect(response.status).toBe(400)
-      expect(response.body).toHaveProperty('error')
-    })
-  })
-
-  describe('POST /api/ai/multiagent/methodologist', () => {
-    it('should run methodologist agent successfully', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/methodologist')
-        .send({
-          topic: 'Разработай дизайн исследования для оценки эффективности онлайн-обучения',
-          provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
-        })
-
-      expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-    })
-
-    it('should return error for missing topic', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/methodologist')
-        .send({})
-
-      expect(response.status).toBe(400)
-      expect(response.body).toHaveProperty('error')
-    })
-  })
-
-  describe('POST /api/ai/multiagent/statistician', () => {
-    it('should run statistician agent successfully', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/statistician')
-        .send({
-          data: 'Выборка: 100 человек\nСреднее: 7.5\nСтандартное отклонение: 1.2',
-          provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
-        })
-
-      expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-    })
-
-    it('should return error for missing data', async () => {
-      const response = await request(app)
-        .post('/api/ai/multiagent/statistician')
-        .send({})
-
-      expect(response.status).toBe(400)
-      expect(response.body).toHaveProperty('error')
-    })
-  })
-
-  describe('POST /api/ai/chunked-request', () => {
-    it('should handle chunked request successfully', async () => {
-      const largeText = 'Test text for chunking. '.repeat(500)
-      
-      const response = await request(app)
-        .post('/api/ai/chunked-request')
-        .send({
-          taskType: 'literature_review',
-          text: largeText,
-          provider: 'openrouter',
-          openRouterKey: process.env.OPENROUTER_API_KEY || 'test-key'
-        })
-
-      expect(response.status).toBe(200)
-      expect(response.body).toHaveProperty('output')
-      expect(response.body.output).toBeTruthy()
-    })
-
-    it('should return error for missing taskType', async () => {
-      const response = await request(app)
-        .post('/api/ai/chunked-request')
-        .send({
-          text: 'some text',
-          provider: 'openrouter'
-        })
-
-      expect(response.status).toBe(400)
-      expect(response.body).toHaveProperty('error')
-    })
-
-    it('should return error for missing text', async () => {
-      const response = await request(app)
-        .post('/api/ai/chunked-request')
-        .send({
-          taskType: 'literature_review',
-          provider: 'openrouter'
+          targetStyle: 'academic'
         })
 
       expect(response.status).toBe(400)

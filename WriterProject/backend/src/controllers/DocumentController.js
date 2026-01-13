@@ -2,6 +2,8 @@ import express from 'express'
 import multer from 'multer'
 import path from 'path'
 import DocumentService from '../services/DocumentService.js'
+import { asyncHandler, NotFoundError } from '../middleware/errorHandler.js'
+import { validateBody, documentUploadValidationSchema, documentStatusValidationSchema } from '../middleware/validation.js'
 
 class DocumentController {
   constructor() {
@@ -19,156 +21,109 @@ class DocumentController {
       }
     })
 
-    this.router.post('/upload', upload.single('file'), this.handleUpload.bind(this))
-    this.router.get('/', this.handleList.bind(this))
-    this.router.get('/:documentId', this.handleGet.bind(this))
-    this.router.get('/:documentId/context', this.handleGetContext.bind(this))
-    this.router.get('/:documentId/metadata', this.handleGetMetadata.bind(this))
-    this.router.delete('/:documentId', this.handleDelete.bind(this))
-    this.router.patch('/:documentId/status', this.handleUpdateStatus.bind(this))
+    this.router.post('/upload', upload.single('file'), validateBody(documentUploadValidationSchema), asyncHandler(this.handleUpload.bind(this)))
+    this.router.get('/', asyncHandler(this.handleList.bind(this)))
+    this.router.get('/:documentId', asyncHandler(this.handleGet.bind(this)))
+    this.router.get('/:documentId/context', asyncHandler(this.handleGetContext.bind(this)))
+    this.router.get('/:documentId/metadata', asyncHandler(this.handleGetMetadata.bind(this)))
+    this.router.delete('/:documentId', asyncHandler(this.handleDelete.bind(this)))
+    this.router.patch('/:documentId/status', validateBody(documentStatusValidationSchema), asyncHandler(this.handleUpdateStatus.bind(this)))
   }
 
   async handleUpload(req, res) {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'Файл не загружен' })
-      }
+    const { userId, projectId, documentType } = req.body
 
-      const { userId, projectId, documentType } = req.body
+    const content = req.file.buffer.toString('utf-8')
 
-      const content = req.file.buffer.toString('utf-8')
+    const result = await DocumentService.uploadDocument({
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      content,
+      size: req.file.size,
+      userId,
+      projectId,
+      documentType
+    })
 
-      const result = await DocumentService.uploadDocument({
-        originalname: req.file.originalname,
-        mimetype: req.file.mimetype,
-        content,
-        size: req.file.size,
-        userId,
-        projectId,
-        documentType
-      })
-
-      res.json(result)
-    } catch (error) {
-      console.error('Error uploading document:', error)
-      res.status(500).json({ error: error.message })
-    }
+    res.json(result)
   }
 
   async handleList(req, res) {
-    try {
-      const { userId, projectId, documentType, status } = req.query
+    const { userId, projectId, documentType, status } = req.query
 
-      const documents = await DocumentService.listDocuments({
-        userId,
-        projectId,
-        documentType,
-        status
-      })
+    const documents = await DocumentService.listDocuments({
+      userId,
+      projectId,
+      documentType,
+      status
+    })
 
-      res.json({
-        success: true,
-        documents,
-        count: documents.length
-      })
-    } catch (error) {
-      console.error('Error listing documents:', error)
-      res.status(500).json({ error: error.message })
-    }
+    res.json({
+      success: true,
+      documents,
+      count: documents.length
+    })
   }
 
   async handleGet(req, res) {
-    try {
-      const documentId = req.params.documentId
-      const document = await DocumentService.getDocument(documentId)
+    const documentId = req.params.documentId
+    const document = await DocumentService.getDocument(documentId)
 
-      res.json({
-        success: true,
-        document
-      })
-    } catch (error) {
-      console.error('Error getting document:', error)
-      res.status(404).json({ error: error.message })
-    }
+    res.json({
+      success: true,
+      document
+    })
   }
 
   async handleGetContext(req, res) {
-    try {
-      const documentId = req.params.documentId
-      const { query, maxTokens, topK } = req.query
+    const documentId = req.params.documentId
+    const { query, maxTokens, topK } = req.query
 
-      if (!query) {
-        return res.status(400).json({ error: 'Query parameter is required' })
-      }
+    const context = await DocumentService.getDocumentContext(documentId, query, {
+      maxTokens: maxTokens ? parseInt(maxTokens) : 4000,
+      topK: topK ? parseInt(topK) : 5
+    })
 
-      const context = await DocumentService.getDocumentContext(documentId, query, {
-        maxTokens: maxTokens ? parseInt(maxTokens) : 4000,
-        topK: topK ? parseInt(topK) : 5
-      })
-
-      res.json({
-        success: true,
-        context
-      })
-    } catch (error) {
-      console.error('Error getting document context:', error)
-      res.status(500).json({ error: error.message })
-    }
+    res.json({
+      success: true,
+      context
+    })
   }
 
   async handleGetMetadata(req, res) {
-    try {
-      const documentId = req.params.documentId
-      const metadata = await DocumentService.getDocumentMetadata(documentId)
+    const documentId = req.params.documentId
+    const metadata = await DocumentService.getDocumentMetadata(documentId)
 
-      res.json({
-        success: true,
-        metadata
-      })
-    } catch (error) {
-      console.error('Error getting document metadata:', error)
-      res.status(404).json({ error: error.message })
-    }
+    res.json({
+      success: true,
+      metadata
+    })
   }
 
   async handleDelete(req, res) {
-    try {
-      const documentId = req.params.documentId
-      await DocumentService.deleteDocument(documentId)
+    const documentId = req.params.documentId
+    await DocumentService.deleteDocument(documentId)
 
-      res.json({
-        success: true,
-        message: 'Document deleted successfully'
-      })
-    } catch (error) {
-      console.error('Error deleting document:', error)
-      res.status(404).json({ error: error.message })
-    }
+    res.json({
+      success: true,
+      message: 'Document deleted successfully'
+    })
   }
 
   async handleUpdateStatus(req, res) {
-    try {
-      const documentId = req.params.documentId
-      const { status, ...additionalData } = req.body
+    const documentId = req.params.documentId
+    const { status, ...additionalData } = req.body
 
-      if (!status) {
-        return res.status(400).json({ error: 'Status is required' })
-      }
+    const metadata = await DocumentService.updateDocumentStatus(
+      documentId,
+      status,
+      additionalData
+    )
 
-      const metadata = await DocumentService.updateDocumentStatus(
-        documentId,
-        status,
-        additionalData
-      )
-
-      res.json({
-        success: true,
-        metadata
-      })
-    } catch (error) {
-      console.error('Error updating document status:', error)
-      res.status(404).json({ error: error.message })
-    }
+    res.json({
+      success: true,
+      metadata
+    })
   }
 }
 

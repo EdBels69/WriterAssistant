@@ -4,11 +4,11 @@ class PriorityRequestQueue {
     this.maxQueueSize = options.maxQueueSize || 100
     this.defaultPriority = options.defaultPriority || 5
     this.processingTimeout = options.processingTimeout || 30000
-    
+
     this.queue = []
     this.processing = new Map()
     this.completed = []
-    
+
     this.priorityLevels = {
       critical: 0,
       high: 3,
@@ -16,7 +16,7 @@ class PriorityRequestQueue {
       low: 7,
       background: 9
     }
-    
+
     this.stats = {
       totalQueued: 0,
       totalProcessed: 0,
@@ -24,7 +24,7 @@ class PriorityRequestQueue {
       avgProcessingTime: 0,
       peakQueueSize: 0
     }
-    
+
     this.startTime = null
   }
 
@@ -49,7 +49,7 @@ class PriorityRequestQueue {
     this.queue.push(queueRequest)
     this.stats.totalQueued++
     this.stats.peakQueueSize = Math.max(this.stats.peakQueueSize, this.queue.length)
-    
+
     if (!this.startTime) this.startTime = Date.now()
 
     return queueRequest.id
@@ -59,15 +59,15 @@ class PriorityRequestQueue {
     if (priority === null || priority === undefined) {
       return this.defaultPriority
     }
-    
+
     if (typeof priority === 'string') {
       return this.priorityLevels[priority.toLowerCase()] || this.defaultPriority
     }
-    
+
     if (typeof priority === 'number') {
       return Math.max(0, Math.min(9, Math.round(priority)))
     }
-    
+
     return this.defaultPriority
   }
 
@@ -128,8 +128,8 @@ class PriorityRequestQueue {
 
     const processingTime = request.completedAt - request.startedAt
     this.stats.totalProcessed++
-    this.stats.avgProcessingTime = 
-      (this.stats.avgProcessingTime * (this.stats.totalProcessed - 1) + processingTime) / 
+    this.stats.avgProcessingTime =
+      (this.stats.avgProcessingTime * (this.stats.totalProcessed - 1) + processingTime) /
       this.stats.totalProcessed
 
     this.processing.delete(requestId)
@@ -305,4 +305,5 @@ class RequestNotFoundError extends Error {
   }
 }
 
-module.exports = { PriorityRequestQueue, QueueFullError, RequestNotFoundError }
+export { PriorityRequestQueue, QueueFullError, RequestNotFoundError }
+export default PriorityRequestQueue
