@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 
 const deriveWsBaseUrl = (apiBaseUrl) => {
   if (!apiBaseUrl || typeof apiBaseUrl !== 'string') return null
-  const normalized = apiBaseUrl.replace(/\/$/, '')
+  const normalized = apiBaseUrl.replace(/\/$/, '').replace(/\/api$/, '')
   const wsBase = normalized.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://')
   if (wsBase.startsWith('ws://') || wsBase.startsWith('wss://')) return wsBase
   return null
