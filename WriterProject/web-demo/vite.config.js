@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const productionBase = process.env.VITE_BASE || '/WriterAssistant/'
+
 export default defineConfig({
   plugins: [react()],
-  base: process.env.NODE_ENV === 'production' ? '/WriterAssistant/' : '/',
+  base: process.env.NODE_ENV === 'production' ? productionBase : '/',
   server: {
     port: 3001,
     host: true,
